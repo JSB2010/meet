@@ -70,9 +70,9 @@ export function PageClientImpl(props: {
   const handlePreJoinError = React.useCallback((e: any) => console.error(e), []);
 
   return (
-    <main data-lk-theme="default" style={{ height: '100%' }}>
+    <main className="room-shell" data-lk-theme="default">
       {connectionDetails === undefined || preJoinChoices === undefined ? (
-        <div style={{ display: 'grid', placeItems: 'center', height: '100%' }}>
+        <div className="prejoin-shell">
           <PreJoin
             defaults={preJoinDefaults}
             onSubmit={handlePreJoinSubmit}

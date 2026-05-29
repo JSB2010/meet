@@ -1,0 +1,11 @@
+.git
+.github
+.next
+.playwright-mcp
+node_modules
+npm-debug.log*
+pnpm-debug.log*
+.env
+.env*.local
+Dockerfile
+README.md

@@ -1,32 +1,31 @@
-import '../styles/globals.css';
 import '@livekit/components-styles';
 import '@livekit/components-styles/prefabs';
+import '../styles/globals.css';
 import type { Metadata, Viewport } from 'next';
 import { Toaster } from 'react-hot-toast';
 
 export const metadata: Metadata = {
   title: {
-    default: 'LiveKit Meet | Conference app build with LiveKit open source',
+    default: 'Jacob Meet | LiveKit video rooms',
     template: '%s',
   },
-  description:
-    'LiveKit is an open source WebRTC project that gives you everything needed to build scalable and real-time audio and/or video experiences in your applications.',
+  description: 'A self-hosted LiveKit Meet app for fast private video rooms.',
   twitter: {
     creator: '@livekitted',
     site: '@livekitted',
     card: 'summary_large_image',
   },
   openGraph: {
-    url: 'https://meet.livekit.io',
+    url: 'https://meet.jacobbarkin.com',
     images: [
       {
-        url: 'https://meet.livekit.io/images/livekit-meet-open-graph.png',
+        url: 'https://meet.jacobbarkin.com/images/livekit-meet-open-graph.png',
         width: 2000,
         height: 1000,
         type: 'image/png',
       },
     ],
-    siteName: 'LiveKit Meet',
+    siteName: 'Jacob Meet',
   },
   icons: {
     icon: {
@@ -45,7 +44,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#070707',
+  themeColor: '#f8fbff',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

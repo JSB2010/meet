@@ -1,9 +1,73 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
+import Image from 'next/image';
+import Link from 'next/link';
 import React, { Suspense, useState } from 'react';
 import { encodePassphrase, generateRoomId, randomString } from '@/lib/client-utils';
 import styles from '../styles/Home.module.css';
+
+function VideoIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
+      <path
+        d="M4.75 7.75A2.75 2.75 0 0 1 7.5 5h6A2.75 2.75 0 0 1 16.25 7.75v8.5A2.75 2.75 0 0 1 13.5 19h-6a2.75 2.75 0 0 1-2.75-2.75v-8.5Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <path
+        d="m16.25 10.25 3.4-2.05a.9.9 0 0 1 1.35.78v6.04a.9.9 0 0 1-1.35.78l-3.4-2.05v-3.5Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function ServerIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
+      <path
+        d="M6.75 5.75h10.5A2.25 2.25 0 0 1 19.5 8v1.25a2.25 2.25 0 0 1-2.25 2.25H6.75A2.25 2.25 0 0 1 4.5 9.25V8a2.25 2.25 0 0 1 2.25-2.25ZM6.75 12.5h10.5a2.25 2.25 0 0 1 2.25 2.25V16a2.25 2.25 0 0 1-2.25 2.25H6.75A2.25 2.25 0 0 1 4.5 16v-1.25a2.25 2.25 0 0 1 2.25-2.25Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <path d="M8 8.65h.01M8 15.4h.01" stroke="currentColor" strokeWidth="2.4" />
+    </svg>
+  );
+}
+
+function LockIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
+      <path
+        d="M7.75 10.25V8.5a4.25 4.25 0 0 1 8.5 0v1.75"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <path
+        d="M7.25 10.25h9.5A2.25 2.25 0 0 1 19 12.5v4.25A2.25 2.25 0 0 1 16.75 19h-9.5A2.25 2.25 0 0 1 5 16.75V12.5a2.25 2.25 0 0 1 2.25-2.25Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
+function SparkIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
+      <path
+        d="M12 3.75 13.9 9l5.35 1.95-5.35 1.95L12 18.25l-1.9-5.35-5.35-1.95L10.1 9 12 3.75Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 function Tabs(props: React.PropsWithChildren<{}>) {
   const searchParams = useSearchParams();
@@ -18,7 +82,8 @@ function Tabs(props: React.PropsWithChildren<{}>) {
   let tabs = React.Children.map(props.children, (child, index) => {
     return (
       <button
-        className="lk-button"
+        key={index}
+        className={styles.tabButton}
         onClick={() => {
           if (onTabSelected) {
             onTabSelected(index);
@@ -54,12 +119,16 @@ function DemoMeetingTab(props: { label: string }) {
   };
   return (
     <div className={styles.tabContent}>
-      <p style={{ margin: 0 }}>Try LiveKit Meet for free with our live demo project.</p>
-      <button style={{ marginTop: '1rem' }} className="lk-button" onClick={startMeeting}>
+      <p className={styles.formCopy}>Start a new room on your configured LiveKit server.</p>
+      <button className={styles.primaryButton} onClick={startMeeting}>
+        <VideoIcon />
         Start Meeting
       </button>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <div style={{ display: 'flex', flexDirection: 'row', gap: '1rem' }}>
+      <div className={styles.securityGroup}>
+        <div className={styles.sectionDivider}>
+          <span>End-to-end encryption</span>
+        </div>
+        <div className={styles.checkRow}>
           <input
             id="use-e2ee"
             type="checkbox"
@@ -69,7 +138,7 @@ function DemoMeetingTab(props: { label: string }) {
           <label htmlFor="use-e2ee">Enable end-to-end encryption</label>
         </div>
         {e2ee && (
-          <div style={{ display: 'flex', flexDirection: 'row', gap: '1rem' }}>
+          <div className={styles.fieldGroup}>
             <label htmlFor="passphrase">Passphrase</label>
             <input
               id="passphrase"
@@ -105,26 +174,30 @@ function CustomConnectionTab(props: { label: string }) {
   };
   return (
     <form className={styles.tabContent} onSubmit={onSubmit}>
-      <p style={{ marginTop: 0 }}>
-        Connect LiveKit Meet with a custom server using LiveKit Cloud or LiveKit Server.
-      </p>
-      <input
-        id="serverUrl"
-        name="serverUrl"
-        type="url"
-        placeholder="LiveKit Server URL: wss://*.livekit.cloud"
-        required
-      />
-      <textarea
-        id="token"
-        name="token"
-        placeholder="Token"
-        required
-        rows={5}
-        style={{ padding: '1px 2px', fontSize: 'inherit', lineHeight: 'inherit' }}
-      />
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <div style={{ display: 'flex', flexDirection: 'row', gap: '1rem' }}>
+      <p className={styles.formCopy}>Connect directly with a LiveKit URL and participant token.</p>
+      <div className={styles.fieldGroup}>
+        <label htmlFor="serverUrl">LiveKit server URL</label>
+        <input
+          id="serverUrl"
+          name="serverUrl"
+          type="url"
+          placeholder="wss://livekit.jacobbarkin.com"
+          required
+        />
+      </div>
+      <div className={styles.fieldGroup}>
+        <label htmlFor="token">Participant token</label>
+        <textarea id="token" name="token" placeholder="Paste token" required rows={3} />
+      </div>
+      <button className={styles.primaryButton} type="submit">
+        <ServerIcon />
+        Connect
+      </button>
+      <div className={styles.securityGroup}>
+        <div className={styles.sectionDivider}>
+          <span>Optional security</span>
+        </div>
+        <div className={styles.checkRow}>
           <input
             id="use-e2ee"
             type="checkbox"
@@ -134,7 +207,7 @@ function CustomConnectionTab(props: { label: string }) {
           <label htmlFor="use-e2ee">Enable end-to-end encryption</label>
         </div>
         {e2ee && (
-          <div style={{ display: 'flex', flexDirection: 'row', gap: '1rem' }}>
+          <div className={styles.fieldGroup}>
             <label htmlFor="passphrase">Passphrase</label>
             <input
               id="passphrase"
@@ -145,18 +218,44 @@ function CustomConnectionTab(props: { label: string }) {
           </div>
         )}
       </div>
-
-      <hr
-        style={{ width: '100%', borderColor: 'rgba(255, 255, 255, 0.15)', marginBlock: '1rem' }}
-      />
-      <button
-        style={{ paddingInline: '1.25rem', width: '100%' }}
-        className="lk-button"
-        type="submit"
-      >
-        Connect
-      </button>
     </form>
+  );
+}
+
+function MeetingPreview() {
+  return (
+    <section className={styles.preview} aria-label="Meeting preview">
+      <div className={`${styles.tile} ${styles.tileLarge}`}>
+        <Image
+          className={styles.tileImage}
+          src="/images/jacob-boreas.webp"
+          alt="Jacob Barkin"
+          fill
+          sizes="(max-width: 980px) 100vw, 34vw"
+          priority
+        />
+        <span className={styles.nameTag}>You</span>
+      </div>
+      <div className={styles.tile}>
+        <div className={`${styles.avatar} ${styles.avatarBlue}`}>SK</div>
+        <span className={styles.nameTag}>Samantha</span>
+      </div>
+      <div className={styles.tile}>
+        <div className={`${styles.avatar} ${styles.avatarGreen}`}>AL</div>
+        <span className={styles.nameTag}>Alex</span>
+      </div>
+      <div className={styles.tile}>
+        <div className={`${styles.avatar} ${styles.avatarNavy}`}>JR</div>
+        <span className={styles.nameTag}>Jordan</span>
+      </div>
+      <div className={styles.callBar}>
+        <span>
+          <VideoIcon />
+        </span>
+        <span>Live</span>
+        <strong>4 participants</strong>
+      </div>
+    </section>
   );
 }
 
@@ -164,33 +263,61 @@ export default function Page() {
   return (
     <>
       <main className={styles.main} data-lk-theme="default">
-        <div className="header">
-          <img src="/images/livekit-meet-home.svg" alt="LiveKit Meet" width="360" height="45" />
-          <h2>
-            Open source video conferencing app built on{' '}
-            <a href="https://github.com/livekit/components-js?ref=meet" rel="noopener">
-              LiveKit&nbsp;Components
-            </a>
-            ,{' '}
-            <a href="https://livekit.io/cloud?ref=meet" rel="noopener">
-              LiveKit&nbsp;Cloud
-            </a>{' '}
-            and Next.js.
-          </h2>
-        </div>
-        <Suspense fallback="Loading">
-          <Tabs>
-            <DemoMeetingTab label="Demo" />
-            <CustomConnectionTab label="Custom" />
-          </Tabs>
-        </Suspense>
+        <header className={styles.topbar}>
+          <Link className={styles.brand} href="/" aria-label="Jacob Meet home">
+            <Image src="/images/jacob-logo.png" alt="" width="40" height="40" priority />
+            <span>Jacob Meet</span>
+          </Link>
+          <div className={styles.statusRail} aria-label="Deployment status">
+            <span className={styles.statusChip}>
+              <span className={styles.statusDot}></span>
+              LiveKit Server
+            </span>
+            <span className={styles.statusChip}>Coolify ready</span>
+          </div>
+        </header>
+        <section className={styles.heroPanel}>
+          <div className={styles.heroCopy}>
+            <div className={styles.promise}>
+              <SparkIcon />
+              Private video rooms
+            </div>
+            <h1>Jacob Meet</h1>
+            <p className={styles.lede}>Start a clean, fast video room backed by LiveKit.</p>
+            <div className={styles.featureRow} aria-label="Meeting features">
+              <span>
+                <VideoIcon />
+                WebRTC
+              </span>
+              <span>
+                <LockIcon />
+                Optional E2EE
+              </span>
+              <span>
+                <ServerIcon />
+                Self-hosted
+              </span>
+            </div>
+            <Suspense fallback={<div className={styles.loading}>Loading connection options</div>}>
+              <Tabs>
+                <DemoMeetingTab label="Demo" />
+                <CustomConnectionTab label="Custom Connection" />
+              </Tabs>
+            </Suspense>
+          </div>
+          <MeetingPreview />
+        </section>
       </main>
-      <footer data-lk-theme="default">
-        Hosted on{' '}
-        <a href="https://livekit.io/cloud?ref=meet" rel="noopener">
-          LiveKit Cloud
+      <footer className={styles.footer} data-lk-theme="default">
+        Built with{' '}
+        <a href="https://github.com/livekit/components-js?ref=meet" rel="noopener">
+          LiveKit Components
         </a>
-        . Source code on{' '}
+        ,{' '}
+        <a href="https://livekit.io/cloud?ref=meet" rel="noopener">
+          LiveKit
+        </a>
+        , and Next.js. Source on{' '}
         <a href="https://github.com/livekit/meet?ref=meet" rel="noopener">
           GitHub
         </a>
