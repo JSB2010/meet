@@ -37,6 +37,7 @@ const SHOW_SETTINGS_MENU = process.env.NEXT_PUBLIC_SHOW_SETTINGS_MENU == 'true';
 export function PageClientImpl(props: {
   roomName: string;
   region?: string;
+  participantName?: string;
   hq: boolean;
   codec: VideoCodec;
   singlePeerConnection: boolean;
@@ -46,11 +47,11 @@ export function PageClientImpl(props: {
   );
   const preJoinDefaults = React.useMemo(() => {
     return {
-      username: '',
+      username: props.participantName ?? '',
       videoEnabled: true,
       audioEnabled: true,
     };
-  }, []);
+  }, [props.participantName]);
   const [connectionDetails, setConnectionDetails] = React.useState<ConnectionDetails | undefined>(
     undefined,
   );

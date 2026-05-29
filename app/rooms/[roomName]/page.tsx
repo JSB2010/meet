@@ -13,6 +13,7 @@ export default async function Page({
     hq?: string;
     codec?: string;
     singlePC?: string;
+    name?: string;
   }>;
 }) {
   const _params = await params;
@@ -28,6 +29,7 @@ export default async function Page({
     <PageClientImpl
       roomName={_params.roomName}
       region={_searchParams.region}
+      participantName={_searchParams.name}
       hq={hq}
       codec={codec}
       singlePeerConnection={singlePC}

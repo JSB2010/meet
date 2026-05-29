@@ -6,10 +6,10 @@ import { Toaster } from 'react-hot-toast';
 
 export const metadata: Metadata = {
   title: {
-    default: 'Jacob Meet | LiveKit video rooms',
+    default: 'LiveKit Meet | Client consultation room',
     template: '%s',
   },
-  description: 'A self-hosted LiveKit Meet app for fast private video rooms.',
+  description: 'A private LiveKit Meet room for client video consultations.',
   twitter: {
     creator: '@livekitted',
     site: '@livekitted',
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
         type: 'image/png',
       },
     ],
-    siteName: 'Jacob Meet',
+    siteName: 'LiveKit Meet',
   },
   icons: {
     icon: {
