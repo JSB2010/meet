@@ -8,9 +8,6 @@ importers:
 
   .:
     dependencies:
-      '@datadog/browser-logs':
-        specifier: ^5.23.3
-        version: 5.35.1
       '@livekit/components-react':
         specifier: 2.9.21
         version: 2.9.21(@livekit/krisp-noise-filter@0.4.3(livekit-client@2.19.1(@types/dom-mediacapture-record@1.0.22)))(livekit-client@2.19.1(@types/dom-mediacapture-record@1.0.22))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(tslib@2.8.1)
@@ -44,9 +41,6 @@ importers:
       react-hot-toast:
         specifier: ^2.5.2
         version: 2.5.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      tinykeys:
-        specifier: ^3.0.0
-        version: 3.0.0
     devDependencies:
       '@types/node':
         specifier: 24.12.4
@@ -69,9 +63,6 @@ importers:
       prettier:
         specifier: 3.8.3
         version: 3.8.3
-      source-map-loader:
-        specifier: ^5.0.0
-        version: 5.0.0(webpack@5.95.0)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -83,17 +74,6 @@ packages:
 
   '@bufbuild/protobuf@1.10.1':
     resolution: {integrity: sha512-wJ8ReQbHxsAfXhrf9ixl0aYbZorRuOWpBNzm8pL8ftmSxQx/wnJD5Eg861NwJU/czy2VXFIebCeZnZrI9rktIQ==}
-
-  '@datadog/browser-core@5.35.1':
-    resolution: {integrity: sha512-zjmw3WkF5syMq5+2jneSgSILxO3DTS+hKw270tzk/yQUfJIGInyGrkHUYYGLmZaVuVp+6F7iO3tUAwIqQYGBFw==}
-
-  '@datadog/browser-logs@5.35.1':
-    resolution: {integrity: sha512-UghvsmCy1dTBVTicdDSXxk3l+xMdKKWLbyrwdoQJaqId3qAJ3vMez1UdOL2XulQTw1cy28DTzYy2EHK+ngfahA==}
-    peerDependencies:
-      '@datadog/browser-rum': 5.35.1
-    peerDependenciesMeta:
-      '@datadog/browser-rum':
-        optional: true
 
   '@emnapi/runtime@1.10.0':
     resolution: {integrity: sha512-ewvYlk86xUoGI0zQRNq/mC+16R1QeDlKQy21Ki3oSYXNgLb45GV1P6A0M+/s6nyCuNDqe5VpaY84BzXGwVbwFA==}
@@ -2101,12 +2081,6 @@ packages:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
     engines: {node: '>=0.10.0'}
 
-  source-map-loader@5.0.0:
-    resolution: {integrity: sha512-k2Dur7CbSLcAH73sBcIkV5xjPV4SzqO1NJ7+XaQl8if3VODDUj3FNchNGpqgJSKbvUfJuhVdv8K2Eu8/TNl2eA==}
-    engines: {node: '>= 18.12.0'}
-    peerDependencies:
-      webpack: ^5.72.1
-
   source-map-support@0.5.21:
     resolution: {integrity: sha512-uBHU3L3czsIyYXKX88fdrGovxdSCoTGDRZ6SYXtSRxLZUzHg5P/66Ht6uoUlHu9EZod+inXhKo3qQgwXUT/y1w==}
 
@@ -2219,9 +2193,6 @@ packages:
   tinyglobby@0.2.15:
     resolution: {integrity: sha512-j2Zq4NyQYG5XMST4cbs02Ak8iJUdxRM0XI5QyxXuZOzKOINmWurp3smXu3y5wDcJrptwpSjgXHzIQxR0omXljQ==}
     engines: {node: '>=12.0.0'}
-
-  tinykeys@3.0.0:
-    resolution: {integrity: sha512-nazawuGv5zx6MuDfDY0rmfXjuOGhD5XU2z0GLURQ1nzl0RUe9OuCJq+0u8xxJZINHe+mr7nw8PWYYZ9WhMFujw==}
 
   tinypool@1.1.1:
     resolution: {integrity: sha512-Zba82s87IFq9A9XmjiX5uZA/ARWDrB03OHlq+Vw1fSdt0I+4/Kutwy8BP4Y/y/aORMo61FQ0vIb5j44vSo5Pkg==}
@@ -2439,12 +2410,6 @@ packages:
 snapshots:
 
   '@bufbuild/protobuf@1.10.1': {}
-
-  '@datadog/browser-core@5.35.1': {}
-
-  '@datadog/browser-logs@5.35.1':
-    dependencies:
-      '@datadog/browser-core': 5.35.1
 
   '@emnapi/runtime@1.10.0':
     dependencies:
@@ -4580,12 +4545,6 @@ snapshots:
 
   source-map-js@1.2.1: {}
 
-  source-map-loader@5.0.0(webpack@5.95.0):
-    dependencies:
-      iconv-lite: 0.6.3
-      source-map-js: 1.2.1
-      webpack: 5.95.0
-
   source-map-support@0.5.21:
     dependencies:
       buffer-from: 1.1.2
@@ -4696,8 +4655,6 @@ snapshots:
     dependencies:
       fdir: 6.5.0(picomatch@4.0.3)
       picomatch: 4.0.3
-
-  tinykeys@3.0.0: {}
 
   tinypool@1.1.1: {}
 

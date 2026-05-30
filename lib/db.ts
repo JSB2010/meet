@@ -7,9 +7,9 @@ const { Pool } = pg;
 
 declare global {
   // eslint-disable-next-line no-var
-  var livekitMeetPool: pg.Pool | undefined;
+  var jacobMeetPool: pg.Pool | undefined;
   // eslint-disable-next-line no-var
-  var livekitMeetSchemaReady: Promise<void> | undefined;
+  var jacobMeetSchemaReady: Promise<void> | undefined;
 }
 
 export function getDb(): Queryable {
@@ -17,8 +17,8 @@ export function getDb(): Queryable {
     throw new Error('DATABASE_URL is not defined');
   }
 
-  if (!globalThis.livekitMeetPool) {
-    globalThis.livekitMeetPool = new Pool({
+  if (!globalThis.jacobMeetPool) {
+    globalThis.jacobMeetPool = new Pool({
       connectionString: process.env.DATABASE_URL,
       ssl:
         process.env.DATABASE_SSL === 'true'
@@ -29,12 +29,12 @@ export function getDb(): Queryable {
     });
   }
 
-  return globalThis.livekitMeetPool;
+  return globalThis.jacobMeetPool;
 }
 
 export async function getReadyDb(): Promise<Queryable> {
   const db = getDb();
-  globalThis.livekitMeetSchemaReady ??= ensureRoomSchema(db);
-  await globalThis.livekitMeetSchemaReady;
+  globalThis.jacobMeetSchemaReady ??= ensureRoomSchema(db);
+  await globalThis.jacobMeetSchemaReady;
   return db;
 }

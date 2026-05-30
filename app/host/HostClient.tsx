@@ -160,8 +160,8 @@ export function HostClient() {
     <main className={styles.main}>
       <header className={styles.topbar}>
         <Link className={styles.brand} href="/">
-          <span className={styles.brandMark}>LK</span>
-          <span>LiveKit Meet</span>
+          <span className={styles.brandMark}>JB</span>
+          <span>Jacob Meet</span>
         </Link>
         <Link className={styles.secondaryLink} href="/">
           Join page

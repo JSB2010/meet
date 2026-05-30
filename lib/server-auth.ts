@@ -4,7 +4,7 @@ import { createHmac, timingSafeEqual } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminSessionToken, readAdminSessionToken, verifyPassword } from './admin-auth';
 
-export const ADMIN_SESSION_COOKIE = 'lk_host_session';
+export const ADMIN_SESSION_COOKIE = 'jacob_meet_host_session';
 
 export async function authenticateAdmin(email: string, password: string): Promise<boolean> {
   const normalizedEmail = email.trim().toLowerCase();

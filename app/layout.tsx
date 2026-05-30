@@ -6,26 +6,21 @@ import { Toaster } from 'react-hot-toast';
 
 export const metadata: Metadata = {
   title: {
-    default: 'LiveKit Meet | Join a meeting',
+    default: 'Jacob Meet | Join a meeting',
     template: '%s',
   },
-  description: 'Join protected LiveKit meeting rooms created by a host.',
-  twitter: {
-    creator: '@livekitted',
-    site: '@livekitted',
-    card: 'summary_large_image',
-  },
+  description: 'Join protected meeting rooms hosted by Jacob Barkin.',
   openGraph: {
     url: 'https://meet.jacobbarkin.com',
     images: [
       {
-        url: 'https://meet.jacobbarkin.com/images/livekit-meet-open-graph.png',
-        width: 2000,
-        height: 1000,
+        url: 'https://meet.jacobbarkin.com/images/meeting-room-render.png',
+        width: 1792,
+        height: 1024,
         type: 'image/png',
       },
     ],
-    siteName: 'LiveKit Meet',
+    siteName: 'Jacob Meet',
   },
   icons: {
     icon: {
@@ -35,10 +30,9 @@ export const metadata: Metadata = {
     apple: [
       {
         rel: 'apple-touch-icon',
-        url: '/images/livekit-apple-touch.png',
+        url: '/images/jacob-logo.png',
         sizes: '180x180',
       },
-      { rel: 'mask-icon', url: '/images/livekit-safari-pinned-tab.svg', color: '#070707' },
     ],
   },
 };

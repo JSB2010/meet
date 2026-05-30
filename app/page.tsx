@@ -279,9 +279,9 @@ export default function Page() {
     <>
       <main className={styles.main} data-lk-theme="default">
         <header className={styles.topbar}>
-          <Link className={styles.brand} href="/" aria-label="LiveKit Meet home">
-            <span className={styles.brandMark}>LK</span>
-            <span>LiveKit Meet</span>
+          <Link className={styles.brand} href="/" aria-label="Jacob Meet home">
+            <span className={styles.brandMark}>JB</span>
+            <span>Jacob Meet</span>
           </Link>
           <div className={styles.statusRail} aria-label="Meeting status">
             <span className={styles.statusChip}>
@@ -317,7 +317,7 @@ export default function Page() {
       </main>
       <footer className={styles.footer} data-lk-theme="default">
         <div className={styles.footerLinks}>
-          <span>© 2026 LiveKit Meet</span>
+          <span>© 2026 Jacob Barkin</span>
           <span>Powered by LiveKit</span>
           <span>Built with Next.js</span>
         </div>

@@ -37,9 +37,9 @@ export default async function Page({
     return (
       <main className={styles.main} data-lk-theme="default">
         <header className={styles.topbar}>
-          <Link className={styles.brand} href="/" aria-label="LiveKit Meet home">
-            <span className={styles.brandMark}>LK</span>
-            <span>LiveKit Meet</span>
+          <Link className={styles.brand} href="/" aria-label="Jacob Meet home">
+            <span className={styles.brandMark}>JB</span>
+            <span>Jacob Meet</span>
           </Link>
         </header>
         <section className={styles.heroPanel}>
