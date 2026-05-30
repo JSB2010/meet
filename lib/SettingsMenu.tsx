@@ -29,7 +29,7 @@ export function SettingsMenu(props: SettingsMenuProps) {
       media: { camera: true, microphone: true, label: 'Media Devices', speaker: true },
       recording: recordingEndpoint ? { label: 'Recording' } : undefined,
     };
-  }, []);
+  }, [recordingEndpoint]);
 
   const tabs = React.useMemo(
     () => Object.keys(settings).filter((t) => t !== undefined) as Array<keyof typeof settings>,
@@ -40,12 +40,7 @@ export function SettingsMenu(props: SettingsMenuProps) {
   const isRecording = useIsRecording();
   const [initialRecStatus, setInitialRecStatus] = React.useState(isRecording);
   const [processingRecRequest, setProcessingRecRequest] = React.useState(false);
-
-  React.useEffect(() => {
-    if (initialRecStatus !== isRecording) {
-      setProcessingRecRequest(false);
-    }
-  }, [isRecording, initialRecStatus]);
+  const isProcessingRecRequest = processingRecRequest && initialRecStatus === isRecording;
 
   const toggleRoomRecording = async () => {
     if (!recordingEndpoint) {
@@ -134,7 +129,7 @@ export function SettingsMenu(props: SettingsMenuProps) {
                   ? 'Meeting is currently being recorded'
                   : 'No active recordings for this meeting'}
               </p>
-              <button disabled={processingRecRequest} onClick={() => toggleRoomRecording()}>
+              <button disabled={isProcessingRecRequest} onClick={() => toggleRoomRecording()}>
                 {isRecording ? 'Stop' : 'Start'} Recording
               </button>
             </section>

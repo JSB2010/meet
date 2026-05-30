@@ -121,11 +121,23 @@ function VideoConferenceComponent(props: {
     singlePeerConnection: boolean;
   };
 }) {
-  const keyProvider = new ExternalE2EEKeyProvider();
+  const keyProvider = React.useMemo(() => new ExternalE2EEKeyProvider(), []);
   const { worker, e2eePassphrase } = useSetupE2EE();
   const e2eeEnabled = !!(e2eePassphrase && worker);
 
   const [e2eeSetupComplete, setE2eeSetupComplete] = React.useState(false);
+  const router = useRouter();
+  const handleOnLeave = React.useCallback(() => router.push('/'), [router]);
+  const handleError = React.useCallback((error: Error) => {
+    console.error(error);
+    alert(`Encountered an unexpected error, check the console logs for details: ${error.message}`);
+  }, []);
+  const handleEncryptionError = React.useCallback((error: Error) => {
+    console.error(error);
+    alert(
+      `Encountered an unexpected encryption error, check the console logs for details: ${error.message}`,
+    );
+  }, []);
 
   const roomOptions = React.useMemo((): RoomOptions => {
     let videoCodec: VideoCodec | undefined = props.options.codec ? props.options.codec : 'vp9';
@@ -152,14 +164,23 @@ function VideoConferenceComponent(props: {
       },
       adaptiveStream: true,
       dynacast: true,
-      e2ee: keyProvider && worker && e2eeEnabled ? { keyProvider, worker } : undefined,
+      e2ee: worker && e2eeEnabled ? { keyProvider, worker } : undefined,
       singlePeerConnection: props.options.singlePeerConnection,
     };
-  }, [props.userChoices, props.options.hq, props.options.codec]);
+  }, [
+    e2eeEnabled,
+    keyProvider,
+    props.options.codec,
+    props.options.hq,
+    props.options.singlePeerConnection,
+    props.userChoices,
+    worker,
+  ]);
 
-  const room = React.useMemo(() => new Room(roomOptions), []);
+  const room = React.useMemo(() => new Room(roomOptions), [roomOptions]);
 
   React.useEffect(() => {
+    let cancelled = false;
     if (e2eeEnabled) {
       keyProvider
         .setKey(decodePassphrase(e2eePassphrase))
@@ -175,11 +196,16 @@ function VideoConferenceComponent(props: {
             }
           });
         })
-        .then(() => setE2eeSetupComplete(true));
-    } else {
-      setE2eeSetupComplete(true);
+        .then(() => {
+          if (!cancelled) {
+            setE2eeSetupComplete(true);
+          }
+        });
     }
-  }, [e2eeEnabled, room, e2eePassphrase]);
+    return () => {
+      cancelled = true;
+    };
+  }, [e2eeEnabled, keyProvider, room, e2eePassphrase]);
 
   const connectOptions = React.useMemo((): RoomConnectOptions => {
     return {
@@ -192,7 +218,7 @@ function VideoConferenceComponent(props: {
     room.on(RoomEvent.EncryptionError, handleEncryptionError);
     room.on(RoomEvent.MediaDevicesError, handleError);
 
-    if (e2eeSetupComplete) {
+    if (!e2eeEnabled || e2eeSetupComplete) {
       room
         .connect(
           props.connectionDetails.serverUrl,
@@ -218,22 +244,19 @@ function VideoConferenceComponent(props: {
       room.off(RoomEvent.EncryptionError, handleEncryptionError);
       room.off(RoomEvent.MediaDevicesError, handleError);
     };
-  }, [e2eeSetupComplete, room, props.connectionDetails, props.userChoices]);
+  }, [
+    connectOptions,
+    e2eeEnabled,
+    e2eeSetupComplete,
+    handleEncryptionError,
+    handleError,
+    handleOnLeave,
+    room,
+    props.connectionDetails,
+    props.userChoices,
+  ]);
 
   const lowPowerMode = useLowCPUOptimizer(room);
-
-  const router = useRouter();
-  const handleOnLeave = React.useCallback(() => router.push('/'), [router]);
-  const handleError = React.useCallback((error: Error) => {
-    console.error(error);
-    alert(`Encountered an unexpected error, check the console logs for details: ${error.message}`);
-  }, []);
-  const handleEncryptionError = React.useCallback((error: Error) => {
-    console.error(error);
-    alert(
-      `Encountered an unexpected encryption error, check the console logs for details: ${error.message}`,
-    );
-  }, []);
 
   React.useEffect(() => {
     if (lowPowerMode) {

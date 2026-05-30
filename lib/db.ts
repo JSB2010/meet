@@ -7,9 +7,7 @@ import { ensureRoomSchema, Queryable } from './room-store';
 const { Pool } = pg;
 
 declare global {
-  // eslint-disable-next-line no-var
   var jacobMeetPool: pg.Pool | undefined;
-  // eslint-disable-next-line no-var
   var jacobMeetSchemaReady: Promise<void> | undefined;
 }
 

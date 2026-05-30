@@ -392,7 +392,7 @@ export function HostClient() {
     setNotice(`${data.user.email} is now ${data.user.status}.`);
   };
 
-  const now = Date.now();
+  const [now] = React.useState(() => Date.now());
   const activeRooms = rooms.filter((room) => room.status === 'active');
   const scheduledRooms = activeRooms.filter(
     (room) => room.scheduledAt && new Date(room.scheduledAt).getTime() > now,
