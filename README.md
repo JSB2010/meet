@@ -3,8 +3,7 @@
 Private meeting portal for Jacob Barkin's hosted video sessions.
 
 This is a Next.js app backed by LiveKit for video rooms and PostgreSQL for host-created meeting
-codes. It is no longer maintained as a LiveKit demo fork; the repository is the source for my own
-deployment at `meet.jacobbarkin.com`.
+codes. This repository is the source for my own deployment at `meet.jacobbarkin.com`.
 
 ## What It Does
 
@@ -100,3 +99,8 @@ pnpm build
 
 `main` is the canonical branch. This repo is not intended to merge back into the original LiveKit
 example project.
+
+## License
+
+This project is distributed under the Apache License, Version 2.0. It contains code derived from
+LiveKit Meet, with modifications by Jacob Barkin. See `LICENSE` and `NOTICE`.
