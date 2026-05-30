@@ -1,10 +1,9 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import React, { useState } from 'react';
-import { encodePassphrase, randomString } from '@/lib/client-utils';
 import styles from '../styles/Home.module.css';
 
 function VideoIcon() {
@@ -38,6 +37,20 @@ function LockIcon() {
         d="M7.25 10.25h9.5A2.25 2.25 0 0 1 19 12.5v4.25A2.25 2.25 0 0 1 16.75 19h-9.5A2.25 2.25 0 0 1 5 16.75V12.5a2.25 2.25 0 0 1 2.25-2.25Z"
         stroke="currentColor"
         strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
+function ArrowIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
+      <path
+        d="M5 12h13M13 6.75 18.25 12 13 17.25"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
     </svg>
   );
@@ -110,38 +123,48 @@ function UsersIcon() {
 }
 
 function sanitizeRoomName(value: string) {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9-_]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+  return value.replace(/[^a-z0-9]/gi, '').toUpperCase();
 }
 
 function ClientJoinForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [participantName, setParticipantName] = useState('');
-  const [roomName, setRoomName] = useState('');
-  const [e2ee, setE2ee] = useState(false);
-  const [sharedPassphrase, setSharedPassphrase] = useState(randomString(64));
+  const [roomName, setRoomName] = useState(searchParams.get('room') ?? '');
+  const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const onSubmit: React.FormEventHandler<HTMLFormElement> = (event) => {
+  const onSubmit: React.FormEventHandler<HTMLFormElement> = async (event) => {
     event.preventDefault();
     const normalizedRoomName = sanitizeRoomName(roomName);
     if (!normalizedRoomName) {
+      setError('Enter a meeting code.');
       return;
     }
 
-    const roomPath = `/rooms/${encodeURIComponent(normalizedRoomName)}`;
-    const searchParams = new URLSearchParams();
+    setError('');
+    setIsSubmitting(true);
+    const response = await fetch(
+      `/api/rooms/exists?code=${encodeURIComponent(normalizedRoomName)}`,
+    );
+    const data = (await response.json().catch(() => null)) as {
+      exists?: boolean;
+      code?: string;
+      error?: string;
+    } | null;
+    setIsSubmitting(false);
+
+    if (!response.ok || !data?.exists || !data.code) {
+      setError(data?.error ?? 'No active meeting was found for that code.');
+      return;
+    }
+
+    const roomPath = `/rooms/${encodeURIComponent(data.code)}`;
+    const destinationParams = new URLSearchParams();
     if (participantName.trim()) {
-      searchParams.set('name', participantName.trim());
+      destinationParams.set('name', participantName.trim());
     }
-    const destination = `${roomPath}${searchParams.size ? `?${searchParams.toString()}` : ''}`;
-    if (e2ee) {
-      router.push(`${destination}#${encodePassphrase(sharedPassphrase)}`);
-    } else {
-      router.push(destination);
-    }
+    router.push(`${roomPath}${destinationParams.size ? `?${destinationParams.toString()}` : ''}`);
   };
 
   return (
@@ -172,61 +195,23 @@ function ClientJoinForm() {
             type="text"
             value={roomName}
             onChange={(event) => setRoomName(event.target.value)}
-            placeholder="Enter room name or code"
+            placeholder="AB12CD34"
             autoComplete="off"
             required
           />
         </div>
       </div>
 
-      <button className={styles.primaryButton} type="submit">
-        <VideoIcon />
-        Join meeting
-      </button>
+      {error && (
+        <p className={styles.errorMessage} role="alert">
+          {error}
+        </p>
+      )}
 
-      <div className={styles.securityGroup}>
-        <div className={styles.securityHeader}>
-          <span className={styles.securityIcon}>
-            <LockIcon />
-          </span>
-          <div>
-            <h2>
-              End-to-end encryption <span>(optional)</span>
-            </h2>
-            <p>Add an extra layer of privacy for your session.</p>
-          </div>
-          <label className={styles.switch} htmlFor="use-e2ee">
-            <span className={styles.switchLabel}>Toggle encryption</span>
-            <input
-              id="use-e2ee"
-              type="checkbox"
-              checked={e2ee}
-              onChange={(event) => setE2ee(event.target.checked)}
-            />
-            <span className={styles.slider}></span>
-          </label>
-        </div>
-        {e2ee && (
-          <div className={styles.fieldGroup}>
-            <label htmlFor="passphrase">Encryption passphrase</label>
-            <div className={styles.inputWrap}>
-              <LockIcon />
-              <input
-                id="passphrase"
-                type="password"
-                value={sharedPassphrase}
-                onChange={(event) => setSharedPassphrase(event.target.value)}
-              />
-            </div>
-            <p className={styles.fieldHint}>Required by all participants in the meeting.</p>
-          </div>
-        )}
-        {!e2ee && (
-          <p className={styles.fieldHint}>
-            Enable this only when your meeting invite includes a passphrase.
-          </p>
-        )}
-      </div>
+      <button className={styles.primaryButton} type="submit" disabled={isSubmitting}>
+        {isSubmitting ? <SignalIcon /> : <VideoIcon />}
+        {isSubmitting ? 'Checking room...' : 'Join meeting'}
+      </button>
     </form>
   );
 }
@@ -234,19 +219,19 @@ function ClientJoinForm() {
 const previewItems = [
   {
     title: 'Your scheduled session',
-    copy: 'Your meeting details will appear here.',
+    copy: 'Use the exact code from your host or open the invite link they sent.',
     icon: <CalendarIcon />,
     tone: 'blue',
   },
   {
     title: 'Secure connection',
-    copy: 'Your connection is protected with industry-standard encryption.',
+    copy: 'Meeting access is issued only after the room is confirmed active.',
     icon: <LockIcon />,
     tone: 'green',
   },
   {
     title: 'Private meeting',
-    copy: 'Only invited participants can join this room.',
+    copy: 'Rooms are created from the protected host console.',
     icon: <UsersIcon />,
     tone: 'blue',
   },
@@ -310,13 +295,22 @@ export default function Page() {
           <div className={styles.heroCopy}>
             <div className={styles.promise}>
               <LockIcon />
-              Private consultation room
+              Private meeting access
             </div>
-            <h1>Join your consultation</h1>
+            <h1>Join a meeting</h1>
             <p className={styles.lede}>
-              Enter your private meeting room to connect securely with your consultant.
+              Enter an active meeting code from your host. If the room is open, you can choose your
+              microphone and camera before joining.
             </p>
-            <ClientJoinForm />
+            <React.Suspense
+              fallback={<div className={styles.joinPanel}>Loading meeting form...</div>}
+            >
+              <ClientJoinForm />
+            </React.Suspense>
+            <Link className={styles.hostLink} href="/host">
+              Host a meeting
+              <ArrowIcon />
+            </Link>
           </div>
           <SessionPreview />
         </section>

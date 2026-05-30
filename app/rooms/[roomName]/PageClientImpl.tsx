@@ -55,19 +55,32 @@ export function PageClientImpl(props: {
   const [connectionDetails, setConnectionDetails] = React.useState<ConnectionDetails | undefined>(
     undefined,
   );
+  const [connectionError, setConnectionError] = React.useState('');
 
-  const handlePreJoinSubmit = React.useCallback(async (values: LocalUserChoices) => {
-    setPreJoinChoices(values);
-    const url = new URL(CONN_DETAILS_ENDPOINT, window.location.origin);
-    url.searchParams.append('roomName', props.roomName);
-    url.searchParams.append('participantName', values.username);
-    if (props.region) {
-      url.searchParams.append('region', props.region);
-    }
-    const connectionDetailsResp = await fetch(url.toString());
-    const connectionDetailsData = await connectionDetailsResp.json();
-    setConnectionDetails(connectionDetailsData);
-  }, []);
+  const handlePreJoinSubmit = React.useCallback(
+    async (values: LocalUserChoices) => {
+      setConnectionError('');
+      setPreJoinChoices(values);
+      const url = new URL(CONN_DETAILS_ENDPOINT, window.location.origin);
+      url.searchParams.append('roomName', props.roomName);
+      url.searchParams.append('participantName', values.username);
+      if (props.region) {
+        url.searchParams.append('region', props.region);
+      }
+      const connectionDetailsResp = await fetch(url.toString());
+      if (!connectionDetailsResp.ok) {
+        const errorData = (await connectionDetailsResp.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        setPreJoinChoices(undefined);
+        setConnectionError(errorData?.error ?? 'This meeting is no longer available.');
+        return;
+      }
+      const connectionDetailsData = await connectionDetailsResp.json();
+      setConnectionDetails(connectionDetailsData);
+    },
+    [props.region, props.roomName],
+  );
   const handlePreJoinError = React.useCallback((e: any) => console.error(e), []);
 
   return (
@@ -79,6 +92,11 @@ export function PageClientImpl(props: {
             onSubmit={handlePreJoinSubmit}
             onError={handlePreJoinError}
           />
+          {connectionError && (
+            <p className="prejoin-error" role="alert">
+              {connectionError}
+            </p>
+          )}
         </div>
       ) : (
         <VideoConferenceComponent

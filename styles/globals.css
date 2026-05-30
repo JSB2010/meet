@@ -113,6 +113,16 @@ a {
   border-radius: 0.5rem;
 }
 
+.prejoin-error {
+  width: min(100%, 30rem);
+  margin: 1rem 0 0;
+  padding: 0.85rem 1rem;
+  color: #9f1d1d;
+  background: #fff1f1;
+  border: 1px solid #ffd0d0;
+  border-radius: 0.5rem;
+}
+
 .lk-room-container {
   height: 100%;
   color: #0f172a;

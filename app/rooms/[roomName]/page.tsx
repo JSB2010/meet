@@ -1,6 +1,12 @@
 import * as React from 'react';
 import { PageClientImpl } from './PageClientImpl';
 import { isVideoCodec } from '@/lib/types';
+import { getReadyDb } from '@/lib/db';
+import { findActiveMeetingRoom } from '@/lib/room-store';
+import Link from 'next/link';
+import styles from '../../../styles/Home.module.css';
+
+export const dynamic = 'force-dynamic';
 
 export default async function Page({
   params,
@@ -24,10 +30,36 @@ export default async function Page({
       : 'vp9';
   const hq = _searchParams.hq === 'true' ? true : false;
   const singlePC = _searchParams.singlePC !== 'false';
+  const db = await getReadyDb();
+  const room = await findActiveMeetingRoom(db, _params.roomName);
+
+  if (!room) {
+    return (
+      <main className={styles.main} data-lk-theme="default">
+        <header className={styles.topbar}>
+          <Link className={styles.brand} href="/" aria-label="LiveKit Meet home">
+            <span className={styles.brandMark}>LK</span>
+            <span>LiveKit Meet</span>
+          </Link>
+        </header>
+        <section className={styles.heroPanel}>
+          <div className={styles.heroCopy}>
+            <h1>Meeting not found</h1>
+            <p className={styles.lede}>
+              This room does not exist, has ended, or is no longer accepting participants.
+            </p>
+            <Link className={styles.primaryButton} href="/">
+              Back to join page
+            </Link>
+          </div>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <PageClientImpl
-      roomName={_params.roomName}
+      roomName={room.code}
       region={_searchParams.region}
       participantName={_searchParams.name}
       hq={hq}

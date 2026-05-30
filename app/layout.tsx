@@ -6,10 +6,10 @@ import { Toaster } from 'react-hot-toast';
 
 export const metadata: Metadata = {
   title: {
-    default: 'LiveKit Meet | Client consultation room',
+    default: 'LiveKit Meet | Join a meeting',
     template: '%s',
   },
-  description: 'A private LiveKit Meet room for client video consultations.',
+  description: 'Join protected LiveKit meeting rooms created by a host.',
   twitter: {
     creator: '@livekitted',
     site: '@livekitted',

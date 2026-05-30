@@ -1,5 +1,7 @@
 import { randomString } from '@/lib/client-utils';
+import { getReadyDb } from '@/lib/db';
 import { getLiveKitURL } from '@/lib/getLiveKitURL';
+import { findActiveMeetingRoom } from '@/lib/room-store';
 import { ConnectionDetails } from '@/lib/types';
 import { AccessToken, AccessTokenOptions, VideoGrant } from 'livekit-server-sdk';
 import { NextRequest, NextResponse } from 'next/server';
@@ -32,6 +34,14 @@ export async function GET(request: NextRequest) {
     if (participantName === null) {
       return new NextResponse('Missing required query parameter: participantName', { status: 400 });
     }
+    const db = await getReadyDb();
+    const room = await findActiveMeetingRoom(db, roomName);
+    if (!room) {
+      return NextResponse.json(
+        { error: 'This meeting room does not exist or has ended.' },
+        { status: 404 },
+      );
+    }
 
     // Generate participant token
     if (!randomParticipantPostfix) {
@@ -43,13 +53,13 @@ export async function GET(request: NextRequest) {
         name: participantName,
         metadata,
       },
-      roomName,
+      room.code,
     );
 
     // Return connection details
     const data: ConnectionDetails = {
       serverUrl: livekitServerUrl,
-      roomName: roomName,
+      roomName: room.code,
       participantToken: participantToken,
       participantName: participantName,
     };
