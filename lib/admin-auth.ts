@@ -5,8 +5,11 @@ const scryptAsync = promisify(scrypt);
 const PASSWORD_PREFIX = 'scrypt';
 const SESSION_TTL_MS = 1000 * 60 * 60 * 12;
 
-type SessionPayload = {
+export type AdminSessionPayload = {
+  userId: string;
   email: string;
+  role: 'owner' | 'admin';
+  sessionVersion: number;
   exp: number;
 };
 
@@ -29,23 +32,37 @@ export async function verifyPassword(password: string, passwordHash: string): Pr
 
 export async function createAdminSessionToken(
   email: string,
+  payload: AdminSessionPayload,
   secret: string,
-  now = new Date(),
 ): Promise<string> {
-  const payload: SessionPayload = {
-    email,
-    exp: now.getTime() + SESSION_TTL_MS,
-  };
-  const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  const body = Buffer.from(JSON.stringify({ ...payload, email })).toString('base64url');
   const signature = sign(body, secret);
   return `${body}.${signature}`;
+}
+
+export function createAdminSessionPayload(
+  user: {
+    id: string;
+    email: string;
+    role: 'owner' | 'admin';
+    sessionVersion: number;
+  },
+  now = new Date(),
+): AdminSessionPayload {
+  return {
+    userId: user.id,
+    email: user.email,
+    role: user.role,
+    sessionVersion: user.sessionVersion,
+    exp: now.getTime() + SESSION_TTL_MS,
+  };
 }
 
 export async function readAdminSessionToken(
   token: string | undefined,
   secret: string,
   now = new Date(),
-): Promise<{ email: string } | null> {
+): Promise<AdminSessionPayload | null> {
   if (!token) {
     return null;
   }
@@ -56,11 +73,19 @@ export async function readAdminSessionToken(
   }
 
   try {
-    const payload = JSON.parse(Buffer.from(body, 'base64url').toString('utf8')) as SessionPayload;
-    if (!payload.email || payload.exp <= now.getTime()) {
+    const payload = JSON.parse(
+      Buffer.from(body, 'base64url').toString('utf8'),
+    ) as AdminSessionPayload;
+    if (
+      !payload.userId ||
+      !payload.email ||
+      !payload.role ||
+      !payload.sessionVersion ||
+      payload.exp <= now.getTime()
+    ) {
       return null;
     }
-    return { email: payload.email };
+    return payload;
   } catch {
     return null;
   }

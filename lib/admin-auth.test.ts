@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  createAdminSessionPayload,
   createAdminSessionToken,
   hashPassword,
   readAdminSessionToken,
@@ -17,14 +18,23 @@ describe('admin auth helpers', () => {
 
   it('round-trips signed admin session tokens and rejects tampering', async () => {
     const secret = 'test-secret-with-enough-length';
-    const token = await createAdminSessionToken(
-      'admin@example.com',
-      secret,
+    const payload = createAdminSessionPayload(
+      {
+        id: 'user_123',
+        email: 'admin@example.com',
+        role: 'owner',
+        sessionVersion: 3,
+      },
       new Date(1700000000000),
     );
+    const token = await createAdminSessionToken('admin@example.com', payload, secret);
 
     expect(await readAdminSessionToken(token, secret, new Date(1700000001000))).toEqual({
       email: 'admin@example.com',
+      exp: 1700043200000,
+      role: 'owner',
+      sessionVersion: 3,
+      userId: 'user_123',
     });
     expect(await readAdminSessionToken(`${token}x`, secret, new Date(1700000001000))).toBeNull();
   });

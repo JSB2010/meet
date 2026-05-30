@@ -8,7 +8,12 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
   const session = await getAdminSession(request);
-  return NextResponse.json({ authenticated: Boolean(session), email: session?.email ?? null });
+  return NextResponse.json({
+    authenticated: Boolean(session),
+    email: session?.email ?? null,
+    role: session?.role ?? null,
+    userId: session?.userId ?? null,
+  });
 }
 
 export async function POST(request: NextRequest) {
@@ -19,12 +24,18 @@ export async function POST(request: NextRequest) {
   const email = body?.email?.trim().toLowerCase() ?? '';
   const password = body?.password ?? '';
 
-  if (!email || !password || !(await authenticateAdmin(email, password))) {
+  const user = email && password ? await authenticateAdmin(email, password) : null;
+  if (!user) {
     return NextResponse.json({ error: 'Invalid host credentials.' }, { status: 401 });
   }
 
-  const response = NextResponse.json({ authenticated: true, email });
-  await setAdminSessionCookie(response, email);
+  const response = NextResponse.json({
+    authenticated: true,
+    email: user.email,
+    role: user.role,
+    userId: user.id,
+  });
+  await setAdminSessionCookie(response, user);
   return response;
 }
 

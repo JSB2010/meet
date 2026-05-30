@@ -1,43 +1,68 @@
 import 'server-only';
 
-import { createHmac, timingSafeEqual } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminSessionToken, readAdminSessionToken, verifyPassword } from './admin-auth';
+import {
+  createAdminSessionPayload,
+  createAdminSessionToken,
+  readAdminSessionToken,
+} from './admin-auth';
+import { AdminUser, getAdminUserById, verifyAdminUserCredentials } from './admin-user-store';
+import { getReadyDb } from './db';
 
 export const ADMIN_SESSION_COOKIE = 'jacob_meet_host_session';
 
-export async function authenticateAdmin(email: string, password: string): Promise<boolean> {
-  const normalizedEmail = email.trim().toLowerCase();
-  const allowedEmails = getAdminEmails();
-  if (!allowedEmails.includes(normalizedEmail)) {
-    return false;
-  }
+export type AdminSession = {
+  userId: string;
+  email: string;
+  role: 'owner' | 'admin';
+};
 
-  const passwordHash = process.env.HOST_ADMIN_PASSWORD_HASH;
-  if (passwordHash) {
-    return verifyPassword(password, passwordHash);
-  }
-
-  const configuredPassword = process.env.HOST_ADMIN_PASSWORD;
-  if (!configuredPassword) {
-    return false;
-  }
-
-  return safeEqual(password, configuredPassword);
+export async function authenticateAdmin(
+  email: string,
+  password: string,
+): Promise<AdminUser | null> {
+  const db = await getReadyDb();
+  return verifyAdminUserCredentials(db, email, password);
 }
 
-export async function getAdminSession(request: NextRequest): Promise<{ email: string } | null> {
+export async function getAdminSession(request: NextRequest): Promise<AdminSession | null> {
   const secret = getAuthSecret();
   if (!secret) {
     return null;
   }
 
-  return readAdminSessionToken(request.cookies.get(ADMIN_SESSION_COOKIE)?.value, secret);
+  const payload = await readAdminSessionToken(
+    request.cookies.get(ADMIN_SESSION_COOKIE)?.value,
+    secret,
+  );
+  if (!payload) {
+    return null;
+  }
+
+  const db = await getReadyDb();
+  const user = await getAdminUserById(db, payload.userId);
+  if (
+    !user ||
+    user.status !== 'active' ||
+    user.sessionVersion !== payload.sessionVersion ||
+    user.email !== payload.email
+  ) {
+    return null;
+  }
+
+  return {
+    userId: user.id,
+    email: user.email,
+    role: user.role,
+  };
 }
 
-export async function setAdminSessionCookie(response: NextResponse, email: string): Promise<void> {
+export async function setAdminSessionCookie(
+  response: NextResponse,
+  user: AdminUser,
+): Promise<void> {
   const secret = requireAuthSecret();
-  const token = await createAdminSessionToken(email.trim().toLowerCase(), secret);
+  const token = await createAdminSessionToken(user.email, createAdminSessionPayload(user), secret);
   response.cookies.set({
     name: ADMIN_SESSION_COOKIE,
     value: token,
@@ -71,17 +96,4 @@ export function requireAuthSecret(): string {
 
 function getAuthSecret(): string | undefined {
   return process.env.AUTH_SECRET;
-}
-
-function getAdminEmails(): string[] {
-  return (process.env.HOST_ADMIN_EMAILS ?? process.env.HOST_ADMIN_EMAIL ?? '')
-    .split(',')
-    .map((email) => email.trim().toLowerCase())
-    .filter(Boolean);
-}
-
-function safeEqual(value: string, expected: string): boolean {
-  const valueDigest = createHmac('sha256', expected).update(value).digest();
-  const expectedDigest = createHmac('sha256', expected).update(expected).digest();
-  return timingSafeEqual(valueDigest, expectedDigest);
 }
