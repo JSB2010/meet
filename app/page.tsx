@@ -70,19 +70,6 @@ function SignalIcon() {
   );
 }
 
-function UserIcon() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
-      <path
-        d="M12 12.25a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM5.25 20a6.75 6.75 0 0 1 13.5 0"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
 function HashIcon() {
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
@@ -129,7 +116,6 @@ function sanitizeRoomName(value: string) {
 function ClientJoinForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [participantName, setParticipantName] = useState('');
   const [roomName, setRoomName] = useState(searchParams.get('room') ?? '');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -160,31 +146,11 @@ function ClientJoinForm() {
     }
 
     const roomPath = `/rooms/${encodeURIComponent(data.code)}`;
-    const destinationParams = new URLSearchParams();
-    if (participantName.trim()) {
-      destinationParams.set('name', participantName.trim());
-    }
-    router.push(`${roomPath}${destinationParams.size ? `?${destinationParams.toString()}` : ''}`);
+    router.push(roomPath);
   };
 
   return (
     <form className={styles.joinPanel} onSubmit={onSubmit}>
-      <div className={styles.fieldGroup}>
-        <label htmlFor="participantName">Your name</label>
-        <div className={styles.inputWrap}>
-          <UserIcon />
-          <input
-            id="participantName"
-            name="participantName"
-            type="text"
-            value={participantName}
-            onChange={(event) => setParticipantName(event.target.value)}
-            placeholder="Enter your name"
-            autoComplete="name"
-          />
-        </div>
-      </div>
-
       <div className={styles.fieldGroup}>
         <label htmlFor="roomName">Meeting room</label>
         <div className={styles.inputWrap}>
@@ -218,31 +184,45 @@ function ClientJoinForm() {
 
 const previewItems = [
   {
-    title: 'Your scheduled session',
-    copy: 'Use the exact code from your host or open the invite link they sent.',
+    title: 'Use your meeting code',
+    copy: 'Enter the code from your host, or open the invite link to skip this step.',
     icon: <CalendarIcon />,
     tone: 'blue',
   },
   {
-    title: 'Secure connection',
-    copy: 'Meeting access is issued only after the room is confirmed active.',
+    title: 'Check your camera and mic',
+    copy: 'Choose your name, microphone, and camera before you enter the room.',
     icon: <LockIcon />,
     tone: 'green',
   },
   {
-    title: 'Private meeting',
-    copy: 'Rooms are created from the protected host console.',
+    title: 'Join only active rooms',
+    copy: 'Ended or mistyped meeting codes will not open a video session.',
     icon: <UsersIcon />,
     tone: 'blue',
   },
 ];
+
+function JacobCredit() {
+  React.useEffect(() => {
+    if (document.querySelector('script[src="https://jacobbarkin.com/embed/credit.js"]')) {
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://jacobbarkin.com/embed/credit.js';
+    document.head.appendChild(script);
+  }, []);
+
+  return React.createElement('jb-credit');
+}
 
 function SessionPreview() {
   return (
     <section className={styles.preview} aria-label="Secure meeting preview">
       <div className={styles.roomImage}>
         <Image
-          src="/images/meeting-room-render.png"
+          src="/images/meeting-room-render-v2.png"
           alt="Modern consultation room with a conference table and video screen"
           fill
           sizes="(max-width: 980px) 100vw, 44vw"
@@ -260,16 +240,6 @@ function SessionPreview() {
           </div>
         ))}
       </div>
-      <div className={styles.previewFooter}>
-        <div>
-          <SignalIcon />
-          Connected to your secure meeting server
-        </div>
-        <span className={styles.onlineBadge}>
-          <span className={styles.statusDot}></span>
-          Online
-        </span>
-      </div>
     </section>
   );
 }
@@ -279,16 +249,12 @@ export default function Page() {
     <>
       <main className={styles.main} data-lk-theme="default">
         <header className={styles.topbar}>
-          <Link className={styles.brand} href="/" aria-label="Jacob Meet home">
-            <span className={styles.brandMark}>JB</span>
-            <span>Jacob Meet</span>
-          </Link>
-          <div className={styles.statusRail} aria-label="Meeting status">
-            <span className={styles.statusChip}>
-              <span className={styles.statusDot}></span>
-              Ready for your session
+          <Link className={styles.brand} href="/" aria-label="LiveKit Meet home">
+            <span className={styles.brandMark}>
+              <Image src="/images/jacob-logo.png" alt="" width={38} height={38} priority />
             </span>
-          </div>
+            <span>LiveKit Meet</span>
+          </Link>
         </header>
 
         <section className={styles.heroPanel}>
@@ -316,14 +282,7 @@ export default function Page() {
         </section>
       </main>
       <footer className={styles.footer} data-lk-theme="default">
-        <div className={styles.footerLinks}>
-          <span>© 2026 Jacob Barkin</span>
-          <span>Powered by LiveKit</span>
-          <span>Built with Next.js</span>
-        </div>
-        <span>
-          Provided by <a href="https://jacobbarkin.com">Jacob Barkin</a>
-        </span>
+        <JacobCredit />
       </footer>
     </>
   );

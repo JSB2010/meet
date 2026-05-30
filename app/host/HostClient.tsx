@@ -1,13 +1,23 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import React from 'react';
 import styles from '../../styles/Host.module.css';
 
 type MeetingRoom = {
   code: string;
+  title: string;
   createdByEmail: string;
   status: 'active' | 'ended';
+  scheduledAt: string | null;
+  durationMinutes: number;
+  maxParticipants: number;
+  waitingRoomEnabled: boolean;
+  recordingEnabled: boolean;
+  chatEnabled: boolean;
+  screenSharingEnabled: boolean;
+  muteOnEntry: boolean;
   createdAt: string;
   endedAt: string | null;
 };
@@ -64,6 +74,61 @@ function EndIcon() {
   );
 }
 
+function VideoIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
+      <path
+        d="M4.75 7.75A2.75 2.75 0 0 1 7.5 5h6A2.75 2.75 0 0 1 16.25 7.75v8.5A2.75 2.75 0 0 1 13.5 19h-6a2.75 2.75 0 0 1-2.75-2.75v-8.5Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <path
+        d="m16.25 10.25 3.4-2.05a.9.9 0 0 1 1.35.78v6.04a.9.9 0 0 1-1.35.78l-3.4-2.05v-3.5Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function CalendarIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
+      <path
+        d="M7.75 4.75v2.5M16.25 4.75v2.5M5.25 9.25h13.5M6.75 6.25h10.5A2.25 2.25 0 0 1 19.5 8.5v8.75a2.25 2.25 0 0 1-2.25 2.25H6.75a2.25 2.25 0 0 1-2.25-2.25V8.5a2.25 2.25 0 0 1 2.25-2.25Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function formatDateTime(value: string | null) {
+  if (!value) {
+    return 'Starts now';
+  }
+  return new Date(value).toLocaleString([], {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+function buildScheduledAt(date: string, time: string) {
+  if (!date || !time) {
+    return null;
+  }
+  const scheduledAt = new Date(`${date}T${time}`);
+  return Number.isNaN(scheduledAt.getTime()) ? null : scheduledAt.toISOString();
+}
+
+function getInvitePath(code: string) {
+  return `/rooms/${encodeURIComponent(code)}`;
+}
+
 export function HostClient() {
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
@@ -74,6 +139,21 @@ export function HostClient() {
   const [notice, setNotice] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(true);
   const [isCreating, setIsCreating] = React.useState(false);
+  const [createdRoomCode, setCreatedRoomCode] = React.useState('');
+  const [meetingTitle, setMeetingTitle] = React.useState('Client consultation');
+  const [customCode, setCustomCode] = React.useState('');
+  const [meetingDate, setMeetingDate] = React.useState('');
+  const [meetingTime, setMeetingTime] = React.useState('');
+  const [durationMinutes, setDurationMinutes] = React.useState(60);
+  const [maxParticipants, setMaxParticipants] = React.useState(25);
+  const [waitingRoomEnabled, setWaitingRoomEnabled] = React.useState(true);
+  const [recordingEnabled, setRecordingEnabled] = React.useState(false);
+  const [chatEnabled, setChatEnabled] = React.useState(true);
+  const [screenSharingEnabled, setScreenSharingEnabled] = React.useState(true);
+  const [muteOnEntry, setMuteOnEntry] = React.useState(false);
+  const [roomFilter, setRoomFilter] = React.useState<'active' | 'scheduled' | 'ended' | 'all'>(
+    'active',
+  );
   const [newUserEmail, setNewUserEmail] = React.useState('');
   const [newUserName, setNewUserName] = React.useState('');
   const [newUserPassword, setNewUserPassword] = React.useState('');
@@ -143,20 +223,20 @@ export function HostClient() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
     });
-    const data = (await response.json()) as {
+    const data = (await response.json().catch(() => null)) as {
       email?: string;
       error?: string;
       role?: 'owner' | 'admin';
       userId?: string;
-    };
+    } | null;
     if (!response.ok) {
-      setError(data.error ?? 'Could not sign in.');
+      setError(data?.error ?? 'Could not sign in.');
       return;
     }
     setCurrentUser({
-      email: data.email ?? email,
-      role: data.role ?? 'admin',
-      userId: data.userId ?? '',
+      email: data?.email ?? email,
+      role: data?.role ?? 'admin',
+      userId: data?.userId ?? '',
     });
     setPassword('');
     await Promise.all([loadRooms(), loadUsers()]);
@@ -167,13 +247,31 @@ export function HostClient() {
     setCurrentUser(null);
     setRooms([]);
     setAdminUsers([]);
+    setCreatedRoomCode('');
   };
 
-  const createRoom = async () => {
+  const createRoom = async (event?: React.FormEvent<HTMLFormElement>) => {
+    event?.preventDefault();
     setIsCreating(true);
     setError('');
     setNotice('');
-    const response = await fetch('/api/host/rooms', { method: 'POST' });
+    setCreatedRoomCode('');
+    const response = await fetch('/api/host/rooms', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: meetingTitle,
+        code: customCode,
+        scheduledAt: buildScheduledAt(meetingDate, meetingTime),
+        durationMinutes,
+        maxParticipants,
+        waitingRoomEnabled,
+        recordingEnabled,
+        chatEnabled,
+        screenSharingEnabled,
+        muteOnEntry,
+      }),
+    });
     const data = (await response.json().catch(() => null)) as {
       room?: MeetingRoom;
       error?: string;
@@ -184,7 +282,9 @@ export function HostClient() {
       return;
     }
     setRooms((currentRooms) => [data.room!, ...currentRooms]);
-    setNotice(`Meeting ${data.room.code} is ready.`);
+    setCustomCode('');
+    setCreatedRoomCode(data.room.code);
+    setNotice(`${data.room.title} is ready.`);
   };
 
   const endRoom = async (code: string) => {
@@ -292,112 +392,383 @@ export function HostClient() {
     setNotice(`${data.user.email} is now ${data.user.status}.`);
   };
 
+  const now = Date.now();
+  const activeRooms = rooms.filter((room) => room.status === 'active');
+  const scheduledRooms = activeRooms.filter(
+    (room) => room.scheduledAt && new Date(room.scheduledAt).getTime() > now,
+  );
+  const endedRooms = rooms.filter((room) => room.status === 'ended');
+  const visibleRooms = rooms.filter((room) => {
+    if (roomFilter === 'active') {
+      return room.status === 'active';
+    }
+    if (roomFilter === 'scheduled') {
+      return room.scheduledAt && new Date(room.scheduledAt).getTime() > now;
+    }
+    if (roomFilter === 'ended') {
+      return room.status === 'ended';
+    }
+    return true;
+  });
+  const createdRoom = createdRoomCode
+    ? (rooms.find((room) => room.code === createdRoomCode) ?? null)
+    : null;
+
   return (
     <main className={styles.main}>
       <header className={styles.topbar}>
         <Link className={styles.brand} href="/">
-          <span className={styles.brandMark}>JB</span>
-          <span>Jacob Meet</span>
+          <span className={styles.brandMark}>
+            <Image src="/images/jacob-logo.png" alt="" width={34} height={34} priority />
+          </span>
+          <span>LiveKit Meet</span>
         </Link>
-        <Link className={styles.secondaryLink} href="/">
-          Join page
-        </Link>
+        <nav className={styles.headerLinks} aria-label="Host navigation">
+          <Link className={styles.secondaryLink} href="/">
+            Join page
+          </Link>
+          {currentUser && (
+            <button className={styles.textButton} onClick={logout}>
+              Sign out
+            </button>
+          )}
+        </nav>
       </header>
 
       <section className={styles.shell}>
         <div className={styles.intro}>
-          <h1>Host console</h1>
+          <h1>Meeting console</h1>
           <p>
-            Create active meeting rooms, copy invite links, and close rooms when a session ends.
+            Create instant or scheduled rooms, tune meeting options, and manage invite access from
+            one place.
           </p>
         </div>
 
         {isLoading ? (
           <div className={styles.panel}>Loading host access...</div>
         ) : !currentUser ? (
-          <form className={styles.authPanel} onSubmit={login}>
-            <div>
-              <h2>Sign in to host</h2>
-              <p>Use the admin email and password configured for this deployment.</p>
-            </div>
-            <label>
-              Email
-              <input
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                autoComplete="email"
-                required
-              />
-            </label>
-            <label>
-              Password
-              <input
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                autoComplete="current-password"
-                required
-              />
-            </label>
-            {error && (
-              <p className={styles.error} role="alert">
-                {error}
-              </p>
-            )}
-            <button className={styles.primaryButton} type="submit">
-              Sign in
-            </button>
-          </form>
+          <div className={styles.authShell}>
+            <form className={styles.authPanel} onSubmit={login}>
+              <div>
+                <span className={styles.eyebrow}>Host access</span>
+                <h2>Sign in to manage meetings</h2>
+                <p>Create rooms, schedule sessions, and manage admin access.</p>
+              </div>
+              <label>
+                Email
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  autoComplete="email"
+                  required
+                />
+              </label>
+              <label>
+                Password
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  autoComplete="current-password"
+                  required
+                />
+              </label>
+              {error && (
+                <p className={styles.error} role="alert">
+                  {error}
+                </p>
+              )}
+              <button className={styles.primaryButton} type="submit">
+                Sign in
+              </button>
+            </form>
+
+            <aside className={styles.authAside} aria-label="Host tools">
+              <div>
+                <span className={styles.eyebrow}>What hosts can do</span>
+                <h2>Rooms, links, and access controls in one place</h2>
+              </div>
+              <div className={styles.authFeatureGrid}>
+                <div>
+                  <strong>Schedule ahead</strong>
+                  <span>Add a title, time, duration, and participant limit.</span>
+                </div>
+                <div>
+                  <strong>Start quickly</strong>
+                  <span>Create a room and jump straight into the meeting.</span>
+                </div>
+                <div>
+                  <strong>Share cleanly</strong>
+                  <span>Copy invite links or use custom meeting codes.</span>
+                </div>
+              </div>
+            </aside>
+          </div>
         ) : (
           <div className={styles.dashboard}>
-            <div className={styles.actionsPanel}>
+            <section className={styles.commandBar} aria-label="Host account">
               <div>
-                <span className={styles.eyebrow}>
-                  Signed in as {currentUser.email} ({currentUser.role})
-                </span>
-                <h2>Create a meeting</h2>
-                <p>
-                  New rooms receive an 8-character invite code and a direct link for participants.
-                </p>
+                <span className={styles.eyebrow}>Signed in as {currentUser.role}</span>
+                <h2>{currentUser.email}</h2>
               </div>
-              <button className={styles.primaryButton} onClick={createRoom} disabled={isCreating}>
-                <PlusIcon />
-                {isCreating ? 'Creating...' : 'Create room'}
-              </button>
-              <button className={styles.textButton} onClick={logout}>
-                Sign out
-              </button>
-            </div>
+              <div className={styles.commandActions}>
+                <Link className={styles.secondaryLink} href="/">
+                  Guest join page
+                </Link>
+              </div>
+            </section>
+
+            <section className={styles.summaryGrid} aria-label="Meeting summary">
+              <div className={styles.metric}>
+                <span>Active rooms</span>
+                <strong>{activeRooms.length}</strong>
+              </div>
+              <div className={styles.metric}>
+                <span>Scheduled</span>
+                <strong>{scheduledRooms.length}</strong>
+              </div>
+              <div className={styles.metric}>
+                <span>Ended</span>
+                <strong>{endedRooms.length}</strong>
+              </div>
+              <div className={styles.metric}>
+                <span>Admins</span>
+                <strong>{adminUsers.filter((user) => user.status === 'active').length}</strong>
+              </div>
+            </section>
 
             {(error || notice) && (
-              <p className={error ? styles.error : styles.notice} role={error ? 'alert' : 'status'}>
-                {error || notice}
-              </p>
+              <div
+                className={error ? styles.error : styles.notice}
+                role={error ? 'alert' : 'status'}
+              >
+                <span>{error || notice}</span>
+                {createdRoom && (
+                  <div className={styles.noticeActions}>
+                    <Link className={styles.primaryButton} href={getInvitePath(createdRoom.code)}>
+                      <VideoIcon />
+                      Join meeting
+                    </Link>
+                    <button
+                      className={styles.textButton}
+                      onClick={() => copyInvite(createdRoom.code)}
+                    >
+                      <CopyIcon />
+                      Copy invite
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
+
+            <section className={styles.workspace} aria-label="Meeting setup">
+              <form className={styles.createPanel} onSubmit={createRoom}>
+                <div className={styles.panelHeader}>
+                  <div>
+                    <span className={styles.eyebrow}>New meeting</span>
+                    <h2>Create or schedule a room</h2>
+                  </div>
+                  <button className={styles.primaryButton} type="submit" disabled={isCreating}>
+                    <PlusIcon />
+                    {isCreating ? 'Creating...' : 'Create meeting'}
+                  </button>
+                </div>
+
+                <div className={styles.formGrid}>
+                  <label className={styles.wideField}>
+                    Meeting title
+                    <input
+                      type="text"
+                      value={meetingTitle}
+                      onChange={(event) => setMeetingTitle(event.target.value)}
+                      placeholder="Client consultation"
+                      maxLength={80}
+                    />
+                  </label>
+                  <label>
+                    Custom code
+                    <input
+                      type="text"
+                      value={customCode}
+                      onChange={(event) => setCustomCode(event.target.value.toUpperCase())}
+                      placeholder="JACOB-ROOM"
+                      autoComplete="off"
+                    />
+                  </label>
+                  <label>
+                    Date
+                    <input
+                      type="date"
+                      value={meetingDate}
+                      onChange={(event) => setMeetingDate(event.target.value)}
+                    />
+                  </label>
+                  <label>
+                    Time
+                    <input
+                      type="time"
+                      value={meetingTime}
+                      onChange={(event) => setMeetingTime(event.target.value)}
+                    />
+                  </label>
+                  <label>
+                    Duration
+                    <select
+                      value={durationMinutes}
+                      onChange={(event) => setDurationMinutes(Number(event.target.value))}
+                    >
+                      <option value={30}>30 minutes</option>
+                      <option value={45}>45 minutes</option>
+                      <option value={60}>1 hour</option>
+                      <option value={90}>90 minutes</option>
+                      <option value={120}>2 hours</option>
+                    </select>
+                  </label>
+                  <label>
+                    Participant limit
+                    <input
+                      type="number"
+                      min={2}
+                      max={200}
+                      value={maxParticipants}
+                      onChange={(event) => setMaxParticipants(Number(event.target.value))}
+                    />
+                  </label>
+                </div>
+
+                <div className={styles.optionGrid}>
+                  <label className={styles.toggleRow}>
+                    <input
+                      type="checkbox"
+                      checked={waitingRoomEnabled}
+                      onChange={(event) => setWaitingRoomEnabled(event.target.checked)}
+                    />
+                    <span>Waiting room</span>
+                  </label>
+                  <label className={styles.toggleRow}>
+                    <input
+                      type="checkbox"
+                      checked={recordingEnabled}
+                      onChange={(event) => setRecordingEnabled(event.target.checked)}
+                    />
+                    <span>Recording allowed</span>
+                  </label>
+                  <label className={styles.toggleRow}>
+                    <input
+                      type="checkbox"
+                      checked={chatEnabled}
+                      onChange={(event) => setChatEnabled(event.target.checked)}
+                    />
+                    <span>Chat</span>
+                  </label>
+                  <label className={styles.toggleRow}>
+                    <input
+                      type="checkbox"
+                      checked={screenSharingEnabled}
+                      onChange={(event) => setScreenSharingEnabled(event.target.checked)}
+                    />
+                    <span>Screen sharing</span>
+                  </label>
+                  <label className={styles.toggleRow}>
+                    <input
+                      type="checkbox"
+                      checked={muteOnEntry}
+                      onChange={(event) => setMuteOnEntry(event.target.checked)}
+                    />
+                    <span>Mute on entry</span>
+                  </label>
+                </div>
+              </form>
+
+              <aside className={styles.quickPanel} aria-label="Quick actions">
+                <span className={styles.eyebrow}>Fast start</span>
+                <h2>Use the latest room immediately</h2>
+                <p>
+                  After creating a room, join it as host or copy the invite without hunting through
+                  the room list.
+                </p>
+                {activeRooms[0] ? (
+                  <div className={styles.quickRoom}>
+                    <strong>{activeRooms[0].title}</strong>
+                    <span>{activeRooms[0].code}</span>
+                    <div className={styles.quickActions}>
+                      <Link
+                        className={styles.primaryButton}
+                        href={getInvitePath(activeRooms[0].code)}
+                      >
+                        <VideoIcon />
+                        Join meeting
+                      </Link>
+                      <button
+                        className={styles.textButton}
+                        onClick={() => copyInvite(activeRooms[0].code)}
+                      >
+                        <CopyIcon />
+                        Copy invite
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className={styles.emptyInline}>No active rooms yet.</p>
+                )}
+              </aside>
+            </section>
 
             <section className={styles.roomsPanel} aria-label="Meeting rooms">
               <div className={styles.roomsHeader}>
-                <h2>Meeting rooms</h2>
-                <span>{rooms.filter((room) => room.status === 'active').length} active</span>
+                <div>
+                  <span className={styles.eyebrow}>Rooms</span>
+                  <h2>Meeting management</h2>
+                </div>
+                <div className={styles.tabs} role="tablist" aria-label="Meeting filters">
+                  {(['active', 'scheduled', 'ended', 'all'] as const).map((filter) => (
+                    <button
+                      key={filter}
+                      className={roomFilter === filter ? styles.tabActive : ''}
+                      onClick={() => setRoomFilter(filter)}
+                      type="button"
+                    >
+                      {filter}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div className={styles.roomList}>
-                {rooms.length === 0 ? (
+                {visibleRooms.length === 0 ? (
                   <div className={styles.emptyState}>No rooms have been created yet.</div>
                 ) : (
-                  rooms.map((room) => (
+                  visibleRooms.map((room) => (
                     <article className={styles.roomRow} key={room.code}>
-                      <div>
-                        <span className={styles.roomCode}>{room.code}</span>
+                      <div className={styles.roomMain}>
+                        <strong>{room.title}</strong>
                         <p>
-                          Created {new Date(room.createdAt).toLocaleString()} by{' '}
-                          {room.createdByEmail}
+                          <CalendarIcon />
+                          {formatDateTime(room.scheduledAt)} · {room.durationMinutes} min ·{' '}
+                          {room.maxParticipants} people
                         </p>
                       </div>
+                      <span className={styles.roomCode}>{room.code}</span>
                       <span className={`${styles.status} ${styles[room.status]}`}>
                         {room.status}
                       </span>
+                      <div className={styles.roomOptions}>
+                        {room.waitingRoomEnabled && <span>Waiting room</span>}
+                        {room.recordingEnabled && <span>Recording</span>}
+                        {room.chatEnabled && <span>Chat</span>}
+                      </div>
                       <div className={styles.rowActions}>
+                        {room.status === 'active' ? (
+                          <Link className={styles.primaryButton} href={getInvitePath(room.code)}>
+                            <VideoIcon />
+                            Join
+                          </Link>
+                        ) : (
+                          <button disabled>
+                            <VideoIcon />
+                            Join
+                          </button>
+                        )}
                         <button
                           onClick={() => copyInvite(room.code)}
                           disabled={room.status !== 'active'}
@@ -422,7 +793,10 @@ export function HostClient() {
 
             <section className={styles.usersPanel} aria-label="Admin users">
               <div className={styles.roomsHeader}>
-                <h2>Admin users</h2>
+                <div>
+                  <span className={styles.eyebrow}>Access</span>
+                  <h2>Admin users</h2>
+                </div>
                 <span>{adminUsers.filter((user) => user.status === 'active').length} active</span>
               </div>
               <div className={styles.userGrid}>

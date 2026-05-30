@@ -3,6 +3,7 @@ import { PageClientImpl } from './PageClientImpl';
 import { isVideoCodec } from '@/lib/types';
 import { getReadyDb } from '@/lib/db';
 import { findActiveMeetingRoom } from '@/lib/room-store';
+import Image from 'next/image';
 import Link from 'next/link';
 import styles from '../../../styles/Home.module.css';
 
@@ -37,9 +38,11 @@ export default async function Page({
     return (
       <main className={styles.main} data-lk-theme="default">
         <header className={styles.topbar}>
-          <Link className={styles.brand} href="/" aria-label="Jacob Meet home">
-            <span className={styles.brandMark}>JB</span>
-            <span>Jacob Meet</span>
+          <Link className={styles.brand} href="/" aria-label="LiveKit Meet home">
+            <span className={styles.brandMark}>
+              <Image src="/images/jacob-logo.png" alt="" width={38} height={38} priority />
+            </span>
+            <span>LiveKit Meet</span>
           </Link>
         </header>
         <section className={styles.heroPanel}>

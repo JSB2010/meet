@@ -6,26 +6,27 @@ import { Toaster } from 'react-hot-toast';
 
 export const metadata: Metadata = {
   title: {
-    default: 'Jacob Meet | Join a meeting',
+    default: 'LiveKit Meet | Join a meeting',
     template: '%s',
   },
-  description: 'Join protected meeting rooms hosted by Jacob Barkin.',
+  description: 'Join protected LiveKit meeting rooms.',
   openGraph: {
     url: 'https://meet.jacobbarkin.com',
     images: [
       {
-        url: 'https://meet.jacobbarkin.com/images/meeting-room-render.png',
+        url: 'https://meet.jacobbarkin.com/images/meeting-room-render-v2.png',
         width: 1792,
         height: 1024,
         type: 'image/png',
       },
     ],
-    siteName: 'Jacob Meet',
+    siteName: 'LiveKit Meet',
   },
   icons: {
     icon: {
       rel: 'icon',
-      url: '/favicon.ico',
+      url: '/images/jacob-logo.png',
+      type: 'image/png',
     },
     apple: [
       {

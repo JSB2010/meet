@@ -1,9 +1,9 @@
-# Jacob Meet
+# LiveKit Meet
 
-Private meeting portal for Jacob Barkin's hosted video sessions.
+Private meeting portal for hosted video sessions.
 
 This is a Next.js app backed by LiveKit for video rooms and PostgreSQL for host-created meeting
-codes. This repository is the source for my own deployment at `meet.jacobbarkin.com`.
+codes. This repository is the source for the deployment at `meet.jacobbarkin.com`.
 
 ## What It Does
 
@@ -105,6 +105,9 @@ TEST_DATABASE_URL=postgresql://jacobmeet:jacobmeet@127.0.0.1:55432/jacobmeet_tes
    use.
 7. Open `/host`, sign in as the bootstrapped owner, change the password, create any additional
    admins, then create rooms and copy invite links.
+
+The Docker image includes a health check against `/api/health`, so Coolify can wait for the Next.js
+server before routing traffic to the container.
 
 ## Useful Commands
 
