@@ -3,9 +3,8 @@ import { PageClientImpl } from './PageClientImpl';
 import { isVideoCodec } from '@/lib/types';
 import { getReadyDb } from '@/lib/db';
 import { findActiveMeetingRoom } from '@/lib/room-store';
-import Image from 'next/image';
 import Link from 'next/link';
-import styles from '../../../styles/Home.module.css';
+import { BrandLogo, JacobCredit } from '@/app/MeetChrome';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,26 +35,22 @@ export default async function Page({
 
   if (!room) {
     return (
-      <main className={styles.main} data-lk-theme="default">
-        <header className={styles.topbar}>
-          <Link className={styles.brand} href="/" aria-label="LiveKit Meet home">
-            <span className={styles.brandMark}>
-              <Image src="/images/jacob-logo.png" alt="" width={38} height={38} priority />
-            </span>
-            <span>LiveKit Meet</span>
-          </Link>
+      <main className="join not-found" data-lk-theme="default">
+        <header className="appbar">
+          <BrandLogo />
         </header>
-        <section className={styles.heroPanel}>
-          <div className={styles.heroCopy}>
+        <section className="join-body not-found-body">
+          <div className="join-copy">
             <h1>Meeting not found</h1>
-            <p className={styles.lede}>
+            <p className="join-lede">
               This room does not exist, has ended, or is no longer accepting participants.
             </p>
-            <Link className={styles.primaryButton} href="/">
+            <Link className="btn btn-primary btn-lg" href="/">
               Back to join page
             </Link>
           </div>
         </section>
+        <JacobCredit />
       </main>
     );
   }
@@ -63,6 +58,7 @@ export default async function Page({
   return (
     <PageClientImpl
       roomName={room.code}
+      meetingTitle={room.title}
       region={_searchParams.region}
       participantName={_searchParams.name}
       hq={hq}

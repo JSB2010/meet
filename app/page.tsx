@@ -4,115 +4,85 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import React, { useState } from 'react';
-import styles from '../styles/Home.module.css';
+import { BrandLogo, JacobCredit, ThemeToggle } from './MeetChrome';
 
+/* ------------------------------------------------------------------ icons */
 function VideoIcon() {
   return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
-      <path
-        d="M4.75 7.75A2.75 2.75 0 0 1 7.5 5h6A2.75 2.75 0 0 1 16.25 7.75v8.5A2.75 2.75 0 0 1 13.5 19h-6a2.75 2.75 0 0 1-2.75-2.75v-8.5Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      />
-      <path
-        d="m16.25 10.25 3.4-2.05a.9.9 0 0 1 1.35.78v6.04a.9.9 0 0 1-1.35.78l-3.4-2.05v-3.5Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinejoin="round"
-      />
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="3" y="6" width="13" height="12" rx="2.5" />
+      <path d="m16 10 4.5-2.6a.7.7 0 0 1 1 .6v8a.7.7 0 0 1-1 .6L16 14" />
     </svg>
   );
 }
-
-function LockIcon() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
-      <path
-        d="M7.75 10.25V8.5a4.25 4.25 0 0 1 8.5 0v1.75"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-      <path
-        d="M7.25 10.25h9.5A2.25 2.25 0 0 1 19 12.5v4.25A2.25 2.25 0 0 1 16.75 19h-9.5A2.25 2.25 0 0 1 5 16.75V12.5a2.25 2.25 0 0 1 2.25-2.25Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      />
-    </svg>
-  );
-}
-
-function ArrowIcon() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
-      <path
-        d="M5 12h13M13 6.75 18.25 12 13 17.25"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function SignalIcon() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
-      <path d="M5 18.25h.01" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-      <path
-        d="M8.5 15.5a5 5 0 0 1 7 0M5.5 12.4a9.25 9.25 0 0 1 13 0M3 9.2a13 13 0 0 1 18 0"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
 function HashIcon() {
   return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
-      <path
-        d="M10 4.75 7.75 19.25M16.25 4.75 14 19.25M5 9h14M4.25 15h14"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M10 4 8 20M16 4l-2 16M5 9h14M4 15h14" />
     </svg>
   );
 }
-
-function CalendarIcon() {
+function ArrowIcon() {
   return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
-      <path
-        d="M7.75 4.75v2.5M16.25 4.75v2.5M5.25 9.25h13.5M6.75 6.25h10.5A2.25 2.25 0 0 1 19.5 8.5v8.75a2.25 2.25 0 0 1-2.25 2.25H6.75a2.25 2.25 0 0 1-2.25-2.25V8.5a2.25 2.25 0 0 1 2.25-2.25Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M5 12h13m-5-5.5L18.5 12 13 17.5" />
     </svg>
   );
 }
-
+function LockIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="4.5" y="10" width="15" height="10" rx="2.2" />
+      <path d="M8 10V7.5a4 4 0 0 1 8 0V10" />
+    </svg>
+  );
+}
+function ShieldIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 3.2 5 6v5.5c0 4.2 2.9 7.3 7 8.8 4.1-1.5 7-4.6 7-8.8V6l-7-2.8Z" />
+      <path d="m9.2 12 1.9 1.9 3.7-3.8" />
+    </svg>
+  );
+}
+function LinkIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M10 14a3.5 3.5 0 0 0 5 0l3-3a3.5 3.5 0 0 0-5-5l-1.5 1.5" />
+      <path d="M14 10a3.5 3.5 0 0 0-5 0l-3 3a3.5 3.5 0 0 0 5 5l1.5-1.5" />
+    </svg>
+  );
+}
 function UsersIcon() {
   return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
-      <path
-        d="M9.75 11.75a3.25 3.25 0 1 0 0-6.5 3.25 3.25 0 0 0 0 6.5ZM4.5 19a5.25 5.25 0 0 1 10.5 0M16.75 11.25a2.5 2.5 0 0 0 0-5M18 18.5a4 4 0 0 0-2.15-3.55"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="9" cy="8.5" r="3.2" />
+      <path d="M3.5 19a5.5 5.5 0 0 1 11 0M16 5.6a3.2 3.2 0 0 1 0 6M17.5 19a5.5 5.5 0 0 0-2.3-3.6" />
+    </svg>
+  );
+}
+function SignalIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M5 18.25h.01" strokeWidth="3" />
+      <path d="M8.5 15.5a5 5 0 0 1 7 0M5.5 12.4a9.25 9.25 0 0 1 13 0M3 9.2a13 13 0 0 1 18 0" />
+    </svg>
+  );
+}
+function CloseIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M6 6l12 12M18 6 6 18" />
     </svg>
   );
 }
 
+/* ---------------------------------------------------------------- helpers */
 function sanitizeRoomName(value: string) {
   return value.replace(/[^a-z0-9]/gi, '').toUpperCase();
 }
 
+/* ------------------------------------------------------------- join form */
 function ClientJoinForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -150,140 +120,112 @@ function ClientJoinForm() {
   };
 
   return (
-    <form className={styles.joinPanel} onSubmit={onSubmit}>
-      <div className={styles.fieldGroup}>
-        <label htmlFor="roomName">Meeting room</label>
-        <div className={styles.inputWrap}>
+    <form className="join-form" onSubmit={onSubmit}>
+      <div className="join-form-row">
+        <div className="input-icon">
           <HashIcon />
           <input
             id="roomName"
             name="roomName"
+            className="input input-code"
             type="text"
             value={roomName}
-            onChange={(event) => setRoomName(event.target.value)}
+            onChange={(event) => setRoomName(event.target.value.toUpperCase())}
             placeholder="AB12CD34"
             autoComplete="off"
+            aria-label="Meeting code"
             required
           />
         </div>
+        <button className="btn btn-primary btn-lg" type="submit" disabled={isSubmitting}>
+          {isSubmitting ? <SignalIcon /> : null}
+          {isSubmitting ? 'Checking…' : 'Continue'}
+          {!isSubmitting ? <ArrowIcon /> : null}
+        </button>
       </div>
-
       {error && (
-        <p className={styles.errorMessage} role="alert">
+        <p className="join-error" role="alert">
+          <CloseIcon />
           {error}
         </p>
       )}
-
-      <button className={styles.primaryButton} type="submit" disabled={isSubmitting}>
-        {isSubmitting ? <SignalIcon /> : <VideoIcon />}
-        {isSubmitting ? 'Checking room...' : 'Join meeting'}
-      </button>
     </form>
   );
 }
 
-const previewItems = [
-  {
-    title: 'Use your meeting code',
-    copy: 'Enter the code from your host, or open the invite link to skip this step.',
-    icon: <CalendarIcon />,
-    tone: 'blue',
-  },
-  {
-    title: 'Check your camera and mic',
-    copy: 'Choose your name, microphone, and camera before you enter the room.',
-    icon: <LockIcon />,
-    tone: 'green',
-  },
-  {
-    title: 'Join only active rooms',
-    copy: 'Ended or mistyped meeting codes will not open a video session.',
-    icon: <UsersIcon />,
-    tone: 'blue',
-  },
-];
-
-function JacobCredit() {
-  React.useEffect(() => {
-    if (document.querySelector('script[src="https://jacobbarkin.com/embed/credit.js"]')) {
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.src = 'https://jacobbarkin.com/embed/credit.js';
-    document.head.appendChild(script);
-  }, []);
-
-  return React.createElement('jb-credit');
-}
-
-function SessionPreview() {
-  return (
-    <section className={styles.preview} aria-label="Secure meeting preview">
-      <div className={styles.roomImage}>
-        <Image
-          src="/images/meeting-room-render-v2.png"
-          alt="Modern consultation room with a conference table and video screen"
-          fill
-          sizes="(max-width: 980px) 100vw, 44vw"
-          priority
-        />
-      </div>
-      <div className={styles.previewList}>
-        {previewItems.map((item) => (
-          <div className={styles.previewItem} key={item.title}>
-            <span className={`${styles.previewIcon} ${styles[item.tone]}`}>{item.icon}</span>
-            <div>
-              <h2>{item.title}</h2>
-              <p>{item.copy}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
+/* ------------------------------------------------------------------ page */
 export default function Page() {
   return (
-    <>
-      <main className={styles.main} data-lk-theme="default">
-        <header className={styles.topbar}>
-          <Link className={styles.brand} href="/" aria-label="LiveKit Meet home">
-            <span className={styles.brandMark}>
-              <Image src="/images/jacob-logo.png" alt="" width={38} height={38} priority />
-            </span>
-            <span>LiveKit Meet</span>
+    <main className="join" data-lk-theme="default">
+      <header className="appbar">
+        <BrandLogo />
+        <div className="appbar-right">
+          <Link className="btn btn-quiet btn-sm" href="/host">
+            <LockIcon />
+            Host sign in
           </Link>
-        </header>
+          <ThemeToggle />
+        </div>
+      </header>
 
-        <section className={styles.heroPanel}>
-          <div className={styles.heroCopy}>
-            <div className={styles.promise}>
-              <LockIcon />
-              Private meeting access
-            </div>
-            <h1>Join a meeting</h1>
-            <p className={styles.lede}>
-              Enter an active meeting code from your host. If the room is open, you can choose your
-              microphone and camera before joining.
-            </p>
-            <React.Suspense
-              fallback={<div className={styles.joinPanel}>Loading meeting form...</div>}
-            >
-              <ClientJoinForm />
-            </React.Suspense>
-            <Link className={styles.hostLink} href="/host">
-              Host a meeting
-              <ArrowIcon />
-            </Link>
+      <div className="join-body">
+        <div className="join-copy">
+          <h1>
+            Your meeting is
+            <br />
+            <span className="grad">ready when you are.</span>
+          </h1>
+          <p className="join-lede">
+            Enter your meeting code to set up your camera and microphone before you join.
+          </p>
+
+          <React.Suspense fallback={<div className="join-form">Loading…</div>}>
+            <ClientJoinForm />
+          </React.Suspense>
+
+          <div className="join-meta">
+            <span className="join-meta-item">
+              <ShieldIcon /> End-to-end encrypted
+            </span>
+            <span className="join-meta-item">
+              <LinkIcon /> Have a link? Just open it
+            </span>
           </div>
-          <SessionPreview />
-        </section>
-      </main>
-      <footer className={styles.footer} data-lk-theme="default">
-        <JacobCredit />
-      </footer>
-    </>
+        </div>
+
+        <div className="join-stage rise">
+          <div className="join-stage-screen">
+            <Image
+              className="join-stage-photo"
+              src="/images/meeting-room-redesign.png"
+              alt="Modern conference room"
+              fill
+              sizes="(max-width: 900px) 100vw, 52vw"
+              priority
+            />
+          </div>
+
+          <div className="join-stage-float tl">
+            <span className="ico g">
+              <ShieldIcon />
+            </span>
+            <div>
+              Private by default
+              <span className="sub">Encrypted rooms only open for invited guests</span>
+            </div>
+          </div>
+          <div className="join-stage-float br">
+            <span className="ico">
+              <UsersIcon />
+            </span>
+            <div>
+              Simple to join
+              <span className="sub">Enter a code, check your setup, and step in</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <JacobCredit />
+    </main>
   );
 }
