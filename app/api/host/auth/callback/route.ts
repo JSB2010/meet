@@ -1,6 +1,8 @@
 import {
   POCKET_ID_PKCE_COOKIE,
   POCKET_ID_STATE_COOKIE,
+  createHostRedirectUrl,
+  createPocketIdCallbackUrl,
   exchangePocketIdCallback,
 } from '@/lib/pocket-id';
 import { clearAdminSessionCookie, setAdminSessionCookie } from '@/lib/server-auth';
@@ -14,8 +16,9 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const user = await exchangePocketIdCallback(request.nextUrl, codeVerifier, state);
-    const response = NextResponse.redirect(new URL('/host', request.url));
+    const callbackUrl = createPocketIdCallbackUrl(request.nextUrl.searchParams);
+    const user = await exchangePocketIdCallback(callbackUrl, codeVerifier, state);
+    const response = NextResponse.redirect(createHostRedirectUrl());
     await setAdminSessionCookie(response, user);
     clearPocketIdTransientCookies(response);
     return response;
@@ -28,8 +31,8 @@ export async function GET(request: NextRequest) {
   }
 }
 
-function redirectWithAuthError(request: NextRequest, code: string): NextResponse {
-  const url = new URL('/host', request.url);
+function redirectWithAuthError(_request: NextRequest, code: string): NextResponse {
+  const url = createHostRedirectUrl();
   url.searchParams.set('authError', code);
   const response = NextResponse.redirect(url);
   clearAdminSessionCookie(response);

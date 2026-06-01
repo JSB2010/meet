@@ -96,6 +96,17 @@ export async function exchangePocketIdCallback(
   return buildSessionUser(claims as ClaimSet, userInfo, settings);
 }
 
+export function createPocketIdCallbackUrl(searchParams: URLSearchParams): URL {
+  const callbackUrl = new URL(getPocketIdSettings().redirectUri);
+  callbackUrl.search = searchParams.toString();
+  return callbackUrl;
+}
+
+export function createHostRedirectUrl(path = '/host'): URL {
+  const redirectUri = new URL(getPocketIdSettings().redirectUri);
+  return new URL(path, redirectUri.origin);
+}
+
 function buildSessionUser(
   idTokenClaims: ClaimSet,
   userInfo: ClaimSet,
