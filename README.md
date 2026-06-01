@@ -9,10 +9,10 @@ codes. This repository is the source for the deployment at `meet.jacobbarkin.com
 
 - Public participants join only with an active room code or invite link.
 - Hosts sign in at `/host`, create meeting rooms, copy invite links, and end rooms.
+- Host authentication is handled by Pocket ID OIDC groups, with no local usernames or passwords.
 - `/api/connection-details` checks PostgreSQL before issuing a LiveKit token, so arbitrary room
   names cannot create joinable meetings.
 - Room records are created automatically in the `meeting_rooms` table on first use.
-- Admin users are stored in PostgreSQL. Owners can create additional admins and disable other users.
 
 ## Tech Stack
 
@@ -49,8 +49,13 @@ LIVEKIT_URL=wss://your-livekit-host
 DATABASE_URL=postgresql://user:password@host:5432/database
 DATABASE_SSL=false
 AUTH_SECRET=
-HOST_ADMIN_EMAILS=admin@example.com,second-admin@example.com
-HOST_ADMIN_PASSWORD=
+POCKET_ID_ISSUER_URL=https://id.example.com
+POCKET_ID_CLIENT_ID=
+POCKET_ID_CLIENT_SECRET=
+POCKET_ID_REDIRECT_URI=https://meet.example.com/api/host/auth/callback
+POCKET_ID_ADMIN_GROUP=meet-admins
+POCKET_ID_OWNER_GROUP=meet-owners
+POCKET_ID_GROUPS_CLAIM=groups
 ```
 
 Generate `AUTH_SECRET` with:
@@ -59,10 +64,12 @@ Generate `AUTH_SECRET` with:
 openssl rand -base64 32
 ```
 
-`HOST_ADMIN_EMAILS`, `HOST_ADMIN_PASSWORD`, and `HOST_ADMIN_PASSWORD_HASH` are bootstrap-only. If
-the `admin_users` table is empty, the first configured email becomes the first owner account.
-Afterward, sign in at `/host`, change the password, and manage additional admins from the console.
-Password changes increment a session version, which invalidates older host session cookies.
+Create an OIDC client in Pocket ID with callback URL matching `POCKET_ID_REDIRECT_URI`. Enable PKCE
+and request `openid profile email groups`. Users in `POCKET_ID_ADMIN_GROUP` can create and manage
+rooms. Users in `POCKET_ID_OWNER_GROUP` receive the owner role. If the owner group is also present,
+it takes precedence over the admin role.
+
+For local Pocket ID issuers served over plain HTTP, set `POCKET_ID_ALLOW_INSECURE_HTTP=true`.
 
 ## Optional Environment Variables
 
@@ -99,12 +106,12 @@ TEST_DATABASE_URL=postgresql://jacobmeet:jacobmeet@127.0.0.1:55432/jacobmeet_tes
 2. Add a PostgreSQL resource in the same Coolify project.
 3. Copy the internal Postgres connection string into the app as `DATABASE_URL`.
 4. Set `DATABASE_SSL=false` for Coolify internal networking unless the Postgres service requires TLS.
-5. Add the LiveKit variables, `AUTH_SECRET`, `HOST_ADMIN_EMAILS`, and `HOST_ADMIN_PASSWORD` or
-   `HOST_ADMIN_PASSWORD_HASH` as app environment variables.
-6. Deploy the app. The `meeting_rooms` and `admin_users` tables are created automatically on first
-   use.
-7. Open `/host`, sign in as the bootstrapped owner, change the password, create any additional
-   admins, then create rooms and copy invite links.
+5. In Pocket ID, create an OIDC client for the app, enable PKCE, add the callback URL
+   `https://<your-app-domain>/api/host/auth/callback`, and add the host admin/owner groups.
+6. Add the LiveKit variables, `AUTH_SECRET`, and the `POCKET_ID_*` variables as app environment
+   variables.
+7. Deploy the app. The `meeting_rooms` table is created automatically on first use.
+8. Open `/host`, sign in with Pocket ID, then create rooms and copy invite links.
 
 The Docker image includes a health check against `/api/health`, so Coolify can wait for the Next.js
 server before routing traffic to the container.

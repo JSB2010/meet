@@ -2,28 +2,22 @@ import 'server-only';
 
 import { NextRequest, NextResponse } from 'next/server';
 import {
+  AdminRole,
+  AdminSessionPayload,
   createAdminSessionPayload,
   createAdminSessionToken,
   readAdminSessionToken,
 } from './admin-auth';
-import { AdminUser, getAdminUserById, verifyAdminUserCredentials } from './admin-user-store';
-import { getReadyDb } from './db';
 
 export const ADMIN_SESSION_COOKIE = 'jacob_meet_host_session';
 
 export type AdminSession = {
   userId: string;
   email: string;
-  role: 'owner' | 'admin';
+  name: string;
+  role: AdminRole;
+  groups: string[];
 };
-
-export async function authenticateAdmin(
-  email: string,
-  password: string,
-): Promise<AdminUser | null> {
-  const db = await getReadyDb();
-  return verifyAdminUserCredentials(db, email, password);
-}
 
 export async function getAdminSession(request: NextRequest): Promise<AdminSession | null> {
   const secret = getAuthSecret();
@@ -39,30 +33,27 @@ export async function getAdminSession(request: NextRequest): Promise<AdminSessio
     return null;
   }
 
-  const db = await getReadyDb();
-  const user = await getAdminUserById(db, payload.userId);
-  if (
-    !user ||
-    user.status !== 'active' ||
-    user.sessionVersion !== payload.sessionVersion ||
-    user.email !== payload.email
-  ) {
-    return null;
-  }
-
   return {
-    userId: user.id,
-    email: user.email,
-    role: user.role,
+    userId: payload.userId,
+    email: payload.email,
+    name: payload.name,
+    role: payload.role,
+    groups: payload.groups,
   };
 }
 
 export async function setAdminSessionCookie(
   response: NextResponse,
-  user: AdminUser,
+  user: {
+    userId: string;
+    email: string;
+    name?: string;
+    role: AdminRole;
+    groups: string[];
+  },
 ): Promise<void> {
   const secret = requireAuthSecret();
-  const token = await createAdminSessionToken(user.email, createAdminSessionPayload(user), secret);
+  const token = await createAdminSessionToken(createAdminSessionPayload(user), secret);
   response.cookies.set({
     name: ADMIN_SESSION_COOKIE,
     value: token,
@@ -92,6 +83,27 @@ export function requireAuthSecret(): string {
     throw new Error('AUTH_SECRET is not defined');
   }
   return secret;
+}
+
+export function sessionToResponse(session: AdminSession | null) {
+  return {
+    authenticated: Boolean(session),
+    email: session?.email ?? null,
+    name: session?.name ?? null,
+    role: session?.role ?? null,
+    userId: session?.userId ?? null,
+    groups: session?.groups ?? [],
+  };
+}
+
+export function payloadToSession(payload: AdminSessionPayload): AdminSession {
+  return {
+    userId: payload.userId,
+    email: payload.email,
+    name: payload.name,
+    role: payload.role,
+    groups: payload.groups,
+  };
 }
 
 function getAuthSecret(): string | undefined {

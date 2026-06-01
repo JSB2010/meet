@@ -1,61 +1,50 @@
-import { createHmac, randomBytes, scrypt, timingSafeEqual } from 'crypto';
-import { promisify } from 'util';
+import { createHmac, timingSafeEqual } from 'crypto';
 
-const scryptAsync = promisify(scrypt);
-const PASSWORD_PREFIX = 'scrypt';
 const SESSION_TTL_MS = 1000 * 60 * 60 * 12;
+
+export type AdminRole = 'owner' | 'admin';
 
 export type AdminSessionPayload = {
   userId: string;
   email: string;
-  role: 'owner' | 'admin';
-  sessionVersion: number;
+  name: string;
+  role: AdminRole;
+  groups: string[];
   exp: number;
 };
 
-export async function hashPassword(password: string): Promise<string> {
-  const salt = randomBytes(16).toString('base64url');
-  const key = (await scryptAsync(password, salt, 64)) as Buffer;
-  return `${PASSWORD_PREFIX}:${salt}:${key.toString('base64url')}`;
-}
-
-export async function verifyPassword(password: string, passwordHash: string): Promise<boolean> {
-  const [prefix, salt, expectedKey] = passwordHash.split(':');
-  if (prefix !== PASSWORD_PREFIX || !salt || !expectedKey) {
-    return false;
-  }
-
-  const actual = (await scryptAsync(password, salt, 64)) as Buffer;
-  const expected = Buffer.from(expectedKey, 'base64url');
-  return actual.length === expected.length && timingSafeEqual(actual, expected);
-}
-
-export async function createAdminSessionToken(
-  email: string,
-  payload: AdminSessionPayload,
-  secret: string,
-): Promise<string> {
-  const body = Buffer.from(JSON.stringify({ ...payload, email })).toString('base64url');
-  const signature = sign(body, secret);
-  return `${body}.${signature}`;
-}
+export type RoleGroups = {
+  ownerGroup: string;
+  adminGroup: string;
+};
 
 export function createAdminSessionPayload(
   user: {
-    id: string;
+    userId: string;
     email: string;
-    role: 'owner' | 'admin';
-    sessionVersion: number;
+    name?: string;
+    role: AdminRole;
+    groups: string[];
   },
   now = new Date(),
 ): AdminSessionPayload {
   return {
-    userId: user.id,
+    userId: user.userId,
     email: user.email,
+    name: user.name?.trim() || user.email,
     role: user.role,
-    sessionVersion: user.sessionVersion,
+    groups: normalizeGroups(user.groups),
     exp: now.getTime() + SESSION_TTL_MS,
   };
+}
+
+export async function createAdminSessionToken(
+  payload: AdminSessionPayload,
+  secret: string,
+): Promise<string> {
+  const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  const signature = sign(body, secret);
+  return `${body}.${signature}`;
 }
 
 export async function readAdminSessionToken(
@@ -68,7 +57,7 @@ export async function readAdminSessionToken(
   }
 
   const [body, signature] = token.split('.');
-  if (!body || !signature || signature !== sign(body, secret)) {
+  if (!body || !signature || !isValidSignature(signature, sign(body, secret))) {
     return null;
   }
 
@@ -79,18 +68,58 @@ export async function readAdminSessionToken(
     if (
       !payload.userId ||
       !payload.email ||
-      !payload.role ||
-      !payload.sessionVersion ||
+      !payload.name ||
+      (payload.role !== 'owner' && payload.role !== 'admin') ||
+      !Array.isArray(payload.groups) ||
       payload.exp <= now.getTime()
     ) {
       return null;
     }
-    return payload;
+    return {
+      ...payload,
+      groups: normalizeGroups(payload.groups),
+    };
   } catch {
     return null;
   }
 }
 
+export function normalizeGroups(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return [...new Set(value.flatMap((item) => normalizeGroups(item)))];
+  }
+  if (typeof value !== 'string') {
+    return [];
+  }
+  return [
+    ...new Set(
+      value
+        .split(/[,\s]+/)
+        .map((group) => group.trim())
+        .filter(Boolean),
+    ),
+  ];
+}
+
+export function resolveAdminRole(groups: unknown, roleGroups: RoleGroups): AdminRole | null {
+  const normalizedGroups = normalizeGroups(groups);
+  if (normalizedGroups.includes(roleGroups.ownerGroup)) {
+    return 'owner';
+  }
+  if (normalizedGroups.includes(roleGroups.adminGroup)) {
+    return 'admin';
+  }
+  return null;
+}
+
 function sign(body: string, secret: string): string {
   return createHmac('sha256', secret).update(body).digest('base64url');
+}
+
+function isValidSignature(actual: string, expected: string): boolean {
+  const actualBuffer = Buffer.from(actual);
+  const expectedBuffer = Buffer.from(expected);
+  return (
+    actualBuffer.length === expectedBuffer.length && timingSafeEqual(actualBuffer, expectedBuffer)
+  );
 }

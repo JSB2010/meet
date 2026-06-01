@@ -6,13 +6,6 @@ export async function GET(request: NextRequest) {
   return NextResponse.json(sessionToResponse(session));
 }
 
-export async function POST() {
-  return NextResponse.json(
-    { error: 'Password login has been replaced by Pocket ID.' },
-    { status: 405 },
-  );
-}
-
 export async function DELETE() {
   const response = NextResponse.json({ authenticated: false });
   clearAdminSessionCookie(response);

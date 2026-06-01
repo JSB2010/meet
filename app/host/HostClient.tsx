@@ -23,25 +23,15 @@ type MeetingRoom = {
   endedAt: string | null;
 };
 
-type AdminUser = {
-  id: string;
-  email: string;
-  name: string;
-  role: 'owner' | 'admin';
-  status: 'active' | 'disabled';
-  sessionVersion: number;
-  createdAt: string;
-  updatedAt: string;
-  lastLoginAt: string | null;
-};
-
 type CurrentUser = {
   userId: string;
   email: string;
+  name: string;
   role: 'owner' | 'admin';
+  groups: string[];
 };
 
-type HostPage = 'meetings' | 'schedule' | 'recordings' | 'contacts' | 'settings';
+type HostPage = 'meetings' | 'schedule' | 'recordings' | 'settings';
 
 /* ------------------------------------------------------------------ icons */
 const sv = {
@@ -151,12 +141,6 @@ const SettingsIcon = () => (
     <path d="M19.4 13.5a7.4 7.4 0 0 0 .05-3l2-1.5-2-3.4-2.4 1a8 8 0 0 0-2.6-1.5L14.1 2h-4l-.4 3.1a8 8 0 0 0-2.6 1.5l-2.4-1-2 3.4 2 1.5a7.4 7.4 0 0 0 .05 3l-2 1.5 2 3.4 2.4-1a8 8 0 0 0 2.6 1.5l.4 3.1h4l.4-3.1a8 8 0 0 0 2.6-1.5l2.4 1 2-3.4-2.15-1.5Z" />
   </svg>
 );
-const KeyIcon = () => (
-  <svg {...sv}>
-    <circle cx="8.5" cy="15.5" r="4.2" />
-    <path d="m11.5 12.5 7.7-7.7M16 5h3.5v3.5M14.2 7.6l2.2 2.2" />
-  </svg>
-);
 
 /* ---------------------------------------------------------------- helpers */
 function formatDateTime(value: string | null) {
@@ -183,13 +167,23 @@ function getInvitePath(code: string) {
   return `/rooms/${encodeURIComponent(code)}`;
 }
 
+function getAuthErrorMessage(code: string | null) {
+  switch (code) {
+    case 'access_denied':
+      return 'Your Pocket ID account is not in a host access group.';
+    case 'missing_state':
+      return 'The Pocket ID sign-in session expired. Try signing in again.';
+    case 'callback_failed':
+      return 'Pocket ID sign-in could not be completed.';
+    default:
+      return '';
+  }
+}
+
 /* ================================================================== client */
 export function HostClient() {
-  const [email, setEmail] = React.useState('');
-  const [password, setPassword] = React.useState('');
   const [currentUser, setCurrentUser] = React.useState<CurrentUser | null>(null);
   const [rooms, setRooms] = React.useState<MeetingRoom[]>([]);
-  const [adminUsers, setAdminUsers] = React.useState<AdminUser[]>([]);
   const [error, setError] = React.useState('');
   const [notice, setNotice] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(true);
@@ -209,12 +203,6 @@ export function HostClient() {
   const [roomFilter, setRoomFilter] = React.useState<'active' | 'scheduled' | 'ended' | 'all'>(
     'active',
   );
-  const [newUserEmail, setNewUserEmail] = React.useState('');
-  const [newUserName, setNewUserName] = React.useState('');
-  const [newUserPassword, setNewUserPassword] = React.useState('');
-  const [newUserRole, setNewUserRole] = React.useState<'admin' | 'owner'>('admin');
-  const [currentPassword, setCurrentPassword] = React.useState('');
-  const [replacementPassword, setReplacementPassword] = React.useState('');
   const [activePage, setActivePage] = React.useState<HostPage>('meetings');
   const [isCreateDrawerOpen, setIsCreateDrawerOpen] = React.useState(false);
   const [roomSearch, setRoomSearch] = React.useState('');
@@ -230,37 +218,42 @@ export function HostClient() {
     setRooms(data.rooms);
   }, []);
 
-  const loadUsers = React.useCallback(async () => {
-    const response = await fetch('/api/host/users');
-    if (response.status === 401) {
-      setCurrentUser(null);
-      setAdminUsers([]);
-      return;
-    }
-    const data = (await response.json()) as { users: AdminUser[] };
-    setAdminUsers(data.users);
-  }, []);
-
   React.useEffect(() => {
     let active = true;
     async function loadSession() {
+      const authError = getAuthErrorMessage(
+        new URLSearchParams(window.location.search).get('authError'),
+      );
+      if (authError) {
+        setError(authError);
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+
       const response = await fetch('/api/host/login');
       const data = (await response.json()) as {
         authenticated: boolean;
         email: string | null;
+        name: string | null;
         role: 'owner' | 'admin' | null;
         userId: string | null;
+        groups: string[];
       };
       if (!active) {
         return;
       }
       setCurrentUser(
         data.authenticated && data.email && data.role && data.userId
-          ? { email: data.email, role: data.role, userId: data.userId }
+          ? {
+              email: data.email,
+              name: data.name ?? data.email,
+              role: data.role,
+              userId: data.userId,
+              groups: data.groups,
+            }
           : null,
       );
       if (data.authenticated) {
-        await Promise.all([loadRooms(), loadUsers()]);
+        await loadRooms();
       }
       setIsLoading(false);
     }
@@ -271,40 +264,17 @@ export function HostClient() {
     return () => {
       active = false;
     };
-  }, [loadRooms, loadUsers]);
+  }, [loadRooms]);
 
-  const login = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const login = () => {
     setError('');
-    const response = await fetch('/api/host/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-    const data = (await response.json().catch(() => null)) as {
-      email?: string;
-      error?: string;
-      role?: 'owner' | 'admin';
-      userId?: string;
-    } | null;
-    if (!response.ok) {
-      setError(data?.error ?? 'Could not sign in.');
-      return;
-    }
-    setCurrentUser({
-      email: data?.email ?? email,
-      role: data?.role ?? 'admin',
-      userId: data?.userId ?? '',
-    });
-    setPassword('');
-    await Promise.all([loadRooms(), loadUsers()]);
+    window.location.href = '/api/host/auth/start';
   };
 
   const logout = async () => {
-    await fetch('/api/host/login', { method: 'DELETE' });
+    await fetch('/api/host/auth/session', { method: 'DELETE' });
     setCurrentUser(null);
     setRooms([]);
-    setAdminUsers([]);
     setCreatedRoomCode('');
   };
 
@@ -371,94 +341,15 @@ export function HostClient() {
     setNotice(`Invite link copied for ${code}.`);
   };
 
-  const createUser = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setError('');
-    setNotice('');
-    const response = await fetch('/api/host/users', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: newUserEmail,
-        name: newUserName,
-        password: newUserPassword,
-        role: newUserRole,
-      }),
-    });
-    const data = (await response.json().catch(() => null)) as {
-      user?: AdminUser;
-      error?: string;
-    } | null;
-    if (!response.ok || !data?.user) {
-      setError(data?.error ?? 'Could not create admin user.');
-      return;
-    }
-    setAdminUsers((users) => [...users, data.user!]);
-    setNewUserEmail('');
-    setNewUserName('');
-    setNewUserPassword('');
-    setNewUserRole('admin');
-    setNotice(`Admin user ${data.user.email} was created.`);
-  };
-
-  const changePassword = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!currentUser) {
-      return;
-    }
-    setError('');
-    setNotice('');
-    const response = await fetch(`/api/host/users/${currentUser.userId}/password`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        currentPassword,
-        password: replacementPassword,
-      }),
-    });
-    const data = (await response.json().catch(() => null)) as {
-      user?: AdminUser;
-      error?: string;
-    } | null;
-    if (!response.ok || !data?.user) {
-      setError(data?.error ?? 'Could not change password.');
-      return;
-    }
-    setCurrentPassword('');
-    setReplacementPassword('');
-    setNotice('Password changed. Sign in again on your next session.');
-    await logout();
-  };
-
-  const setUserStatus = async (user: AdminUser, status: 'active' | 'disabled') => {
-    setError('');
-    setNotice('');
-    const response = await fetch(`/api/host/users/${user.id}/status`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status }),
-    });
-    const data = (await response.json().catch(() => null)) as {
-      user?: AdminUser;
-      error?: string;
-    } | null;
-    if (!response.ok || !data?.user) {
-      setError(data?.error ?? 'Could not update admin user.');
-      return;
-    }
-    setAdminUsers((users) =>
-      users.map((adminUser) => (adminUser.id === data.user!.id ? data.user! : adminUser)),
-    );
-    setNotice(`${data.user.email} is now ${data.user.status}.`);
-  };
-
   const [now] = React.useState(() => Date.now());
   const getRoomBucket = React.useCallback(
     (room: MeetingRoom): 'active' | 'scheduled' | 'ended' => {
       if (room.status === 'ended') {
         return 'ended';
       }
-      return room.scheduledAt && new Date(room.scheduledAt).getTime() > now ? 'scheduled' : 'active';
+      return room.scheduledAt && new Date(room.scheduledAt).getTime() > now
+        ? 'scheduled'
+        : 'active';
     },
     [now],
   );
@@ -478,13 +369,7 @@ export function HostClient() {
   const createdRoom = createdRoomCode
     ? (rooms.find((room) => room.code === createdRoomCode) ?? null)
     : null;
-  const activeAdmins = adminUsers.filter((user) => user.status === 'active').length;
-  const recordingRooms = rooms.filter(
-    (room) => room.status === 'ended' && room.recordingEnabled,
-  );
-  const currentAdminUser = currentUser
-    ? adminUsers.find((user) => user.id === currentUser.userId || user.email === currentUser.email)
-    : null;
+  const recordingRooms = rooms.filter((room) => room.status === 'ended' && room.recordingEnabled);
   const emailDisplayName = currentUser?.email.includes('jacob')
     ? 'Jacob'
     : currentUser?.email
@@ -492,8 +377,8 @@ export function HostClient() {
         .replace(/[._-]+/g, ' ')
         .replace(/\b\w/g, (letter) => letter.toUpperCase());
   const currentUserName =
-    currentAdminUser?.name && !['admin', 'owner'].includes(currentAdminUser.name.toLowerCase())
-      ? currentAdminUser.name
+    currentUser?.name && !['admin', 'owner'].includes(currentUser.name.toLowerCase())
+      ? currentUser.name
       : emailDisplayName || 'Host';
   const hostDate = new Intl.DateTimeFormat([], {
     weekday: 'long',
@@ -510,16 +395,50 @@ export function HostClient() {
     { id: 'meetings', label: 'Meetings', icon: <VideoIcon />, count: activeRooms.length },
     { id: 'schedule', label: 'Schedule', icon: <CalendarIcon />, count: scheduledRooms.length },
     { id: 'recordings', label: 'Recordings', icon: <RecordIcon /> },
-    { id: 'contacts', label: 'Contacts', icon: <UsersIcon />, count: activeAdmins },
     { id: 'settings', label: 'Settings', icon: <SettingsIcon /> },
   ];
 
   const roomOptions = [
-    ['waiting', 'Waiting room', 'Admit guests one by one', waitingRoomEnabled, setWaitingRoomEnabled, <ShieldIcon key="waiting" />],
-    ['rec', 'Recording allowed', 'Save the session', recordingEnabled, setRecordingEnabled, <RecordIcon key="recording" />],
-    ['chat', 'Chat', 'Let guests send messages', chatEnabled, setChatEnabled, <ChatIcon key="chat" />],
-    ['screen', 'Screen sharing', 'Anyone can present', screenSharingEnabled, setScreenSharingEnabled, <ScreenIcon key="screen" />],
-    ['mute', 'Mute on entry', 'Guests join muted', muteOnEntry, setMuteOnEntry, <MicOffIcon key="mute" />],
+    [
+      'waiting',
+      'Waiting room',
+      'Admit guests one by one',
+      waitingRoomEnabled,
+      setWaitingRoomEnabled,
+      <ShieldIcon key="waiting" />,
+    ],
+    [
+      'rec',
+      'Recording allowed',
+      'Save the session',
+      recordingEnabled,
+      setRecordingEnabled,
+      <RecordIcon key="recording" />,
+    ],
+    [
+      'chat',
+      'Chat',
+      'Let guests send messages',
+      chatEnabled,
+      setChatEnabled,
+      <ChatIcon key="chat" />,
+    ],
+    [
+      'screen',
+      'Screen sharing',
+      'Anyone can present',
+      screenSharingEnabled,
+      setScreenSharingEnabled,
+      <ScreenIcon key="screen" />,
+    ],
+    [
+      'mute',
+      'Mute on entry',
+      'Guests join muted',
+      muteOnEntry,
+      setMuteOnEntry,
+      <MicOffIcon key="mute" />,
+    ],
   ] as const;
 
   const renderRoomCard = (room: MeetingRoom) => {
@@ -632,7 +551,9 @@ export function HostClient() {
       </label>
       <div className="drawer-grid">
         <label className="field">
-          <span className="field-label">Date <span className="opt">· optional</span></span>
+          <span className="field-label">
+            Date <span className="opt">· optional</span>
+          </span>
           <input
             className="input"
             type="date"
@@ -641,7 +562,9 @@ export function HostClient() {
           />
         </label>
         <label className="field">
-          <span className="field-label">Time <span className="opt">· optional</span></span>
+          <span className="field-label">
+            Time <span className="opt">· optional</span>
+          </span>
           <input
             className="input"
             type="time"
@@ -701,7 +624,11 @@ export function HostClient() {
         ))}
       </div>
       <button className="btn btn-primary btn-lg btn-block" type="submit" disabled={isCreating}>
-        {isCreating ? 'Creating…' : meetingDate && meetingTime ? 'Schedule meeting' : 'Create meeting'}
+        {isCreating
+          ? 'Creating…'
+          : meetingDate && meetingTime
+            ? 'Schedule meeting'
+            : 'Create meeting'}
       </button>
     </form>
   );
@@ -721,13 +648,15 @@ export function HostClient() {
         </header>
       )}
 
-      <section className={currentUser ? 'host-shell host-shell-dash' : 'host-shell host-shell-login'}>
+      <section
+        className={currentUser ? 'host-shell host-shell-dash' : 'host-shell host-shell-login'}
+      >
         {isLoading ? (
           <div className="host-loading">Loading host access…</div>
         ) : !currentUser ? (
           /* -------------------------------------------------- login */
           <div className="host-auth">
-            <form className="host-auth-card" onSubmit={login}>
+            <div className="host-auth-card">
               <div className="host-auth-head">
                 <span className="lk">
                   <span className="logo-mark logo-mark-image">
@@ -740,44 +669,22 @@ export function HostClient() {
               </div>
 
               <div className="host-auth-form">
-                <label className="field">
-                  <span className="field-label">Email</span>
-                  <input
-                    className="input"
-                    type="email"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    autoComplete="email"
-                    required
-                  />
-                </label>
-                <label className="field">
-                  <span className="field-label">Password</span>
-                  <input
-                    className="input"
-                    type="password"
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    autoComplete="current-password"
-                    required
-                  />
-                </label>
                 {error && (
                   <p className="join-error" role="alert">
                     <CloseIcon />
                     {error}
                   </p>
                 )}
-                <button className="btn btn-primary btn-lg btn-block" type="submit">
-                  Sign in
+                <button className="btn btn-primary btn-lg btn-block" type="button" onClick={login}>
+                  Sign in with Pocket ID
                 </button>
               </div>
 
               <div className="host-auth-foot">
                 <ShieldIcon />
-                Protected host area · admins only
+                Protected by Pocket ID groups
               </div>
-            </form>
+            </div>
             <JacobCredit />
           </div>
         ) : (
@@ -796,7 +703,9 @@ export function HostClient() {
                   >
                     {item.icon}
                     {item.label}
-                    {typeof item.count === 'number' && <span className="nav-count">{item.count}</span>}
+                    {typeof item.count === 'number' && (
+                      <span className="nav-count">{item.count}</span>
+                    )}
                   </button>
                 ))}
               </div>
@@ -821,7 +730,6 @@ export function HostClient() {
                     {activePage === 'meetings' && `Good afternoon, ${currentUserName}`}
                     {activePage === 'schedule' && 'Schedule'}
                     {activePage === 'recordings' && 'Recordings'}
-                    {activePage === 'contacts' && 'Contacts'}
                     {activePage === 'settings' && 'Settings'}
                   </h1>
                   <span className="dt">
@@ -836,7 +744,10 @@ export function HostClient() {
                   <button className="icon-btn search-btn" title="Search meetings">
                     <SearchIcon />
                   </button>
-                  <button className="btn btn-primary btn-md" onClick={() => setIsCreateDrawerOpen(true)}>
+                  <button
+                    className="btn btn-primary btn-md"
+                    onClick={() => setIsCreateDrawerOpen(true)}
+                  >
                     <PlusIcon />
                     New meeting
                   </button>
@@ -851,11 +762,17 @@ export function HostClient() {
                   <span>{error || notice}</span>
                   {createdRoom && (
                     <div className="banner-actions">
-                      <Link className="btn btn-primary btn-sm" href={getInvitePath(createdRoom.code)}>
+                      <Link
+                        className="btn btn-primary btn-sm"
+                        href={getInvitePath(createdRoom.code)}
+                      >
                         <VideoIcon />
                         Join meeting
                       </Link>
-                      <button className="btn btn-ghost btn-sm" onClick={() => copyInvite(createdRoom.code)}>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => copyInvite(createdRoom.code)}
+                      >
                         <CopyIcon />
                         Copy invite
                       </button>
@@ -891,8 +808,8 @@ export function HostClient() {
                       <span className="mi">
                         <UsersIcon />
                       </span>
-                      <span className="mv">{activeAdmins}</span>
-                      <span className="ml">Admins</span>
+                      <span className="mv">{currentUser.groups.length}</span>
+                      <span className="ml">Groups</span>
                     </div>
                     <div className="metric">
                       <span className="mi">
@@ -939,7 +856,10 @@ export function HostClient() {
                             <VideoIcon />
                           </span>
                           <div>No meetings match this view.</div>
-                          <button className="btn btn-ghost btn-sm" onClick={() => setIsCreateDrawerOpen(true)}>
+                          <button
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => setIsCreateDrawerOpen(true)}
+                          >
                             <PlusIcon />
                             Create one
                           </button>
@@ -1016,102 +936,6 @@ export function HostClient() {
                 </section>
               )}
 
-              {activePage === 'contacts' && (
-                <section className="panel">
-                  <div className="panel-head">
-                    <div>
-                      <span className="eyebrow">Access</span>
-                      <h2>Contacts and admins</h2>
-                    </div>
-                    <span className="tag">{activeAdmins} active</span>
-                  </div>
-                  <div className="user-grid">
-                    {currentUser.role === 'owner' && (
-                      <form className="user-form" onSubmit={createUser}>
-                        <h3>Create admin</h3>
-                        <label className="field">
-                          <span className="field-label">Email</span>
-                          <input
-                            className="input"
-                            type="email"
-                            value={newUserEmail}
-                            onChange={(event) => setNewUserEmail(event.target.value)}
-                            autoComplete="off"
-                            required
-                          />
-                        </label>
-                        <label className="field">
-                          <span className="field-label">Name</span>
-                          <input
-                            className="input"
-                            type="text"
-                            value={newUserName}
-                            onChange={(event) => setNewUserName(event.target.value)}
-                            autoComplete="off"
-                          />
-                        </label>
-                        <label className="field">
-                          <span className="field-label">Temporary password</span>
-                          <input
-                            className="input"
-                            type="password"
-                            value={newUserPassword}
-                            onChange={(event) => setNewUserPassword(event.target.value)}
-                            autoComplete="new-password"
-                            minLength={12}
-                            required
-                          />
-                        </label>
-                        <label className="field">
-                          <span className="field-label">Role</span>
-                          <select
-                            className="select"
-                            value={newUserRole}
-                            onChange={(event) =>
-                              setNewUserRole(event.target.value === 'owner' ? 'owner' : 'admin')
-                            }
-                          >
-                            <option value="admin">Admin</option>
-                            <option value="owner">Owner</option>
-                          </select>
-                        </label>
-                        <button className="btn btn-primary btn-md" type="submit">
-                          Create user
-                        </button>
-                      </form>
-                    )}
-                    <div className="user-list user-list-panel">
-                      {adminUsers.map((user) => (
-                        <article className="user-row" key={user.id}>
-                          <div>
-                            <strong>{user.name || user.email}</strong>
-                            <p>
-                              {user.email} · Last login{' '}
-                              {user.lastLoginAt ? formatDateTime(user.lastLoginAt) : 'not yet'}
-                            </p>
-                          </div>
-                          <span className={`status ${user.status}`}>
-                            {user.role} · {user.status}
-                          </span>
-                          <div className="room-card-actions">
-                            {currentUser.role === 'owner' && user.id !== currentUser.userId && (
-                              <button
-                                className="btn btn-ghost btn-sm"
-                                onClick={() =>
-                                  setUserStatus(user, user.status === 'active' ? 'disabled' : 'active')
-                                }
-                              >
-                                {user.status === 'active' ? 'Disable' : 'Enable'}
-                              </button>
-                            )}
-                          </div>
-                        </article>
-                      ))}
-                    </div>
-                  </div>
-                </section>
-              )}
-
               {activePage === 'settings' && (
                 <div className="dash-grid settings-grid">
                   <section className="panel">
@@ -1149,41 +973,32 @@ export function HostClient() {
                     <div className="panel-head">
                       <div>
                         <span className="eyebrow">Account</span>
-                        <h2>Change password</h2>
+                        <h2>Pocket ID access</h2>
                       </div>
                       <span className="tag">
-                        <KeyIcon />
-                        Protected
+                        <ShieldIcon />
+                        {currentUser.role}
                       </span>
                     </div>
-                    <form className="user-form flat" onSubmit={changePassword}>
-                      <label className="field">
-                        <span className="field-label">Current password</span>
-                        <input
-                          className="input"
-                          type="password"
-                          value={currentPassword}
-                          onChange={(event) => setCurrentPassword(event.target.value)}
-                          autoComplete="current-password"
-                          required
-                        />
-                      </label>
-                      <label className="field">
-                        <span className="field-label">New password</span>
-                        <input
-                          className="input"
-                          type="password"
-                          value={replacementPassword}
-                          onChange={(event) => setReplacementPassword(event.target.value)}
-                          autoComplete="new-password"
-                          minLength={12}
-                          required
-                        />
-                      </label>
-                      <button className="btn btn-primary btn-md" type="submit">
-                        Change password
-                      </button>
-                    </form>
+                    <div className="user-list user-list-panel">
+                      <article className="user-row">
+                        <div>
+                          <strong>{currentUser.name}</strong>
+                          <p>{currentUser.email}</p>
+                        </div>
+                        <span className="status active">{currentUser.role}</span>
+                      </article>
+                      <article className="user-row">
+                        <div>
+                          <strong>Pocket ID groups</strong>
+                          <p>
+                            {currentUser.groups.length
+                              ? currentUser.groups.join(', ')
+                              : 'No groups returned'}
+                          </p>
+                        </div>
+                      </article>
+                    </div>
                   </section>
                 </div>
               )}
